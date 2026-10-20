@@ -1,0 +1,10 @@
+{
+ "name": "homing-no-trigger",
+ "covers": "G28 when no endstop ever triggers (the simulator has no endstop hardware)",
+ "why": "Exercises the homing move and its failure path: travel to max_travel, then the error.",
+ "sim_args": [
+  "--modules"
+ ],
+ "reference_status": "pending review",
+ "approved_by": null
+}

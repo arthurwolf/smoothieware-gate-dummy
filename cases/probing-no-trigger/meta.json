@@ -1,0 +1,10 @@
+{
+ "name": "probing-no-trigger",
+ "covers": "Z probe G30 and G38.2 when the probe never triggers",
+ "why": "The simulator has no probe hardware, so probing runs to full travel; checks that path.",
+ "sim_args": [
+  "--modules"
+ ],
+ "reference_status": "pending review",
+ "approved_by": null
+}

@@ -1,0 +1,8 @@
+{
+ "name": "arcs-ijk",
+ "covers": "G2/G3 arcs with I/J centres, full circle and half circles",
+ "why": "Arc segmentation settings drive the number of generated blocks.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

@@ -1,0 +1,8 @@
+{
+ "name": "high-acceleration",
+ "covers": "Low and high acceleration settings in one run",
+ "why": "Acceleration (M204) changes block profiles; step totals stay equal.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

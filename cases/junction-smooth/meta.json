@@ -1,0 +1,8 @@
+{
+ "name": "junction-smooth",
+ "covers": "Gentle polyline approximating a curve",
+ "why": "Nearly collinear segments should be joined at near-full speed.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

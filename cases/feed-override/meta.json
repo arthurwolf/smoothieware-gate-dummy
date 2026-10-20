@@ -1,0 +1,8 @@
+{
+ "name": "feed-override",
+ "covers": "M220 feed override and a segment after changing it",
+ "why": "Override scales speed of queued and later blocks.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

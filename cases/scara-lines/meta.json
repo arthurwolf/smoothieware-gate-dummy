@@ -1,0 +1,8 @@
+{
+ "name": "scara-lines",
+ "covers": "Morgan SCARA kinematics",
+ "why": "Joint-space steps for Cartesian lines; checks the inverse kinematics.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

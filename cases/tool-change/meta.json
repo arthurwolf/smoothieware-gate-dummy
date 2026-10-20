@@ -1,0 +1,10 @@
+{
+ "name": "tool-change",
+ "covers": "T0/T1 selection between two extruders with offsets",
+ "why": "Tool change moves the XY origin by the extruder offset.",
+ "sim_args": [
+  "--modules"
+ ],
+ "reference_status": "pending review",
+ "approved_by": null
+}

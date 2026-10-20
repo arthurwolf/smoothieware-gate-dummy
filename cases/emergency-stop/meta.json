@@ -1,0 +1,10 @@
+{
+ "name": "emergency-stop",
+ "covers": "M112 emergency stop: the move queued after it must not run",
+ "why": "After a halt no further motion may be emitted. The simulator feeds G-code in lockstep, so the earlier moves complete before M112 arrives; a mid-move flush is not modelled.",
+ "sim_args": [
+  "--modules"
+ ],
+ "reference_status": "pending review",
+ "approved_by": null
+}

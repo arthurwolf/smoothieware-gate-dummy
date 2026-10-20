@@ -1,0 +1,10 @@
+{
+ "name": "laser-raster",
+ "covers": "Laser engraving: S-word power, M3/M5 and short alternating scan lines",
+ "why": "Lasers drive many short back-and-forth moves; the step pattern must not change when the laser module is touched.",
+ "sim_args": [
+  "--modules"
+ ],
+ "reference_status": "pending review",
+ "approved_by": null
+}

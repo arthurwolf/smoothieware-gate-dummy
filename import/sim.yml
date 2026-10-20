@@ -1,0 +1,53 @@
+name: Smoothieware simulator checks
+# Manual run: give a pull request number or any branch/commit of the firmware repo.
+# The simulator never edits the firmware; it copies it, overlays host shims and builds an x86 binary.
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number: { description: "Firmware pull request number (leave empty to use ref)", required: false }
+      ref: { description: "Branch or commit of Smoothieware/Smoothieware", required: false, default: "edge" }
+      base_ref: { description: "Reference branch for the comparison (RAM, flash, new waits)", required: false, default: "edge" }
+      post_comment: { description: "Post a short summary comment on the pull request", type: boolean, default: false }
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch firmware under test and reference
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          REF: ${{ inputs.ref }}
+          BASE_REF: ${{ inputs.base_ref }}
+        run: |
+          git clone --filter=blob:none https://github.com/Smoothieware/Smoothieware.git fw
+          cd fw
+          git fetch origin "$BASE_REF"; git worktree add ../base FETCH_HEAD
+          if [ -n "$PR_NUMBER" ]; then git fetch origin "pull/$PR_NUMBER/head"; else git fetch origin "$REF"; fi
+          git checkout FETCH_HEAD
+          if [ -n "$PR_NUMBER" ]; then WHAT="PR #$PR_NUMBER"; else WHAT=$REF; fi
+          echo "SUBJECT=$WHAT against $BASE_REF ($(git rev-parse --short HEAD))" >> "$GITHUB_ENV"
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y g++ python3 gcc-arm-none-eabi binutils-arm-none-eabi
+      - name: Build the simulator
+        run: make -j4 SMOOTHIE_SRC="$PWD/fw" BUILD="$PWD/out/build"
+      - name: Build firmware for the RAM and flash comparison
+        run: |
+          set -e
+          for d in base fw; do (make -C "$PWD/$d" -j4 AXIS=5 >/dev/null) ; done
+          mkdir -p out/elf; cp base/LPC1768/main.elf out/elf/ref.elf; cp fw/LPC1768/main.elf out/elf/cand.elf
+      - name: Run the checkers
+        env: { RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" }
+        run: ./run_checks.sh out/build/smoothie-sim "$PWD/fw" "$PWD/base" out/report "$PWD/out/elf/ref.elf" "$PWD/out/elf/cand.elf"
+      - name: Job summary
+        if: always()
+        run: cat out/report/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: simulator-report, path: out/report }
+      - name: Comment on the pull request
+        if: ${{ inputs.post_comment && inputs.pr_number != '' }}
+        env: { GH_TOKEN: "${{ secrets.FIRMWARE_PR_TOKEN || github.token }}", PR_NUMBER: "${{ inputs.pr_number }}" }
+        run: gh pr comment "$PR_NUMBER" --repo Smoothieware/Smoothieware --body-file out/report/comment.md

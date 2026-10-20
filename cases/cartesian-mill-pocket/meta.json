@@ -1,0 +1,10 @@
+{
+ "name": "cartesian-mill-pocket",
+ "covers": "Milling toolpath with Z plunges, rapids and spindle commands",
+ "why": "CNC use: G0 rapids, slow plunges and many direction reversals on all three axes.",
+ "sim_args": [
+  "--modules"
+ ],
+ "reference_status": "pending review",
+ "approved_by": null
+}

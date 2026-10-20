@@ -1,0 +1,8 @@
+{
+ "name": "dwell-and-sync",
+ "covers": "G4 dwell and M400 wait inside a move sequence",
+ "why": "Dwell must separate motion without changing steps.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

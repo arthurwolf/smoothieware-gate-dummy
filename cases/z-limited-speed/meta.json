@@ -1,0 +1,8 @@
+{
+ "name": "z-limited-speed",
+ "covers": "Fast diagonal move limited by the slow Z axis",
+ "why": "Per-axis max rate limits the whole move when Z is involved.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

@@ -1,0 +1,8 @@
+{
+ "name": "extruder-and-xyz",
+ "covers": "XYZ with one extruder as fourth actuator",
+ "why": "Four-actuator machines; the extruder follows the XY path.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

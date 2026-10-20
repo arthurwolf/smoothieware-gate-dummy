@@ -1,0 +1,8 @@
+{
+ "name": "delta-triangle",
+ "covers": "Linear delta kinematics with segmented moves",
+ "why": "Delta moves are split into small segments; checks segment splitting and the tower step counts.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

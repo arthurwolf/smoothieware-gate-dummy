@@ -1,0 +1,8 @@
+{
+ "name": "corexy-square",
+ "covers": "CoreXY kinematics (both motors move for one axis)",
+ "why": "A bug in the arm solution shows up as wrong per-motor step counts.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}
