@@ -402,3 +402,4 @@ void Kernel::unregister_for_event(_EVENT_ENUM id_event, Module *mod)
 
 // gate test: harmless comment
 // gate test: second line
+// gate test: third line
