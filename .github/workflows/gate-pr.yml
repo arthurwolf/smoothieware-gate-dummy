@@ -109,3 +109,4 @@ jobs:
             results/pr.json
             results/**/*.result.json
           if-no-files-found: error
+# reindex
