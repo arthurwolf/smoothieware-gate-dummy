@@ -356,8 +356,8 @@ def main():
     parser.add_argument("--pr-text", help="JSON {title, branch, body} or plain text; untrusted")
     parser.add_argument("--prompts", default=os.path.join(ROOT, "prompts"))
     parser.add_argument("--sim-dir", default=DEFAULT_SIM_DIR, help="smoothie-sim checkout (rule_for of its modules checker)")
-    parser.add_argument("--base-url", default=os.environ.get("AI_BASE_URL", DEFAULT_BASE_URL))
-    parser.add_argument("--models", default=os.environ.get("AI_MODELS", ",".join(DEFAULT_MODELS)))
+    parser.add_argument("--base-url", default=os.environ.get("AI_BASE_URL") or DEFAULT_BASE_URL)
+    parser.add_argument("--models", default=os.environ.get("AI_MODELS") or ",".join(DEFAULT_MODELS))
     parser.add_argument("--max-tokens", type=int, default=262144, help="requested output limit; halved if the endpoint refuses it")
     parser.add_argument("--chunk-chars", type=int, default=100000, help="largest diff text per request")
     parser.add_argument("--max-chunks", type=int, default=6, help="requests per prompt; the rest of a huge diff is not reviewed")
@@ -382,7 +382,7 @@ def main():
     rules_md = open(os.path.join(args.prompts, "rules.md")).read()
     prompts = {name: open(os.path.join(args.prompts, f"review-{name}.md")).read().replace("{{RULES}}", rules_md)
                for name in ("rules", "general")}
-    client = ModelClient(args.base_url, [m for m in args.models.split(",") if m], os.environ.get("AI_API_KEY"),
+    client = ModelClient(args.base_url, [m for m in args.models.split(",") if m], os.environ.get("AI_API_KEY") or None,
                          args.max_tokens, args.timeout, args.attempts)
     model_findings, dropped, answered, errors = [], [], 0, []
     if not args.no_model and chunks:

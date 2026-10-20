@@ -169,6 +169,24 @@ class StageTests(unittest.TestCase):
             self.assertEqual(ai_review.main(), 0)
         self.assertEqual(json.load(open(os.path.join(root, "ai-review.result.json")))["status"], "skipped")
 
+    def test_empty_provider_variables_use_the_defaults(self):
+        # GitHub passes an unset repository variable as an empty string; that must not mean "no model".
+        seen = {}
+        def complete(client, messages):
+            seen["models"] = client.models
+            seen["url"] = client.base_url
+            return None, "down"
+        root = tempfile.mkdtemp(dir=os.environ.get("TMPDIR"))
+        diff = os.path.join(root, "pr.diff")
+        open(diff, "w").write("diff --git a/src/a.cpp b/src/a.cpp\n--- a/src/a.cpp\n+++ b/src/a.cpp\n@@ -1,1 +1,2 @@\n int a;\n+int b;\n")
+        argv = ["ai_review.py", "--diff", diff, "--out", root, "--sim-dir", SIM_DIR]
+        env = {"AI_MODELS": "", "AI_BASE_URL": "", "AI_API_KEY": ""}
+        with mock.patch.dict(os.environ, env), mock.patch.object(ai_review.ModelClient, "complete", complete), \
+                mock.patch.object(sys, "argv", argv):
+            ai_review.main()
+        self.assertEqual(seen["models"], ai_review.DEFAULT_MODELS)
+        self.assertEqual(seen["url"], ai_review.DEFAULT_BASE_URL)
+
     def test_model_findings_are_warnings_never_failures(self):
         answer = json.dumps({"findings": [{"file": "src/libs/StepperMotor.cpp", "line": 79, "severity": "high", "rule": "formatting",
                                            "evidence": "int x = 1;", "message": "odd", "confidence": 0.9}]})
