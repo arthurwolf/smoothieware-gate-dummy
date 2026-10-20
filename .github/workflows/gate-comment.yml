@@ -1,0 +1,105 @@
+name: gate-comment
+
+# Trusted half of smoothie-gate. Runs from the default branch after gate-pr finishes, so it never executes
+# pull request code. It reads the artifacts of the untrusted run as data, reviews the diff text with an AI
+# model and posts or edits one comment on the pull request.
+on:
+  workflow_run:
+    workflows: [gate-pr]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: gate-comment-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  comment:
+    # Only pull request runs of gate-pr carry artifacts worth reporting.
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      REPO: ${{ github.repository }}
+      GATE_REPO: ${{ vars.GATE_REPO }}
+      GATE_REF: ${{ vars.GATE_REF }}
+      AI_BASE_URL: ${{ vars.AI_BASE_URL }}
+      AI_MODELS: ${{ vars.AI_MODELS }}
+      AI_API_KEY: ${{ secrets.AI_API_KEY }}
+    steps:
+      - name: Check out smoothie-gate (trusted, pinned)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ vars.GATE_REPO }}
+          ref: ${{ vars.GATE_REF }}
+          path: gate
+          persist-credentials: false
+
+      - name: Check out smoothie-sim (trusted rules)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ vars.SIM_REPO }}
+          ref: ${{ vars.SIM_REF }}
+          path: sim
+          persist-credentials: false
+
+      - name: Download the results of the untrusted run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: gate-results
+          path: results
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Read the pull request number (untrusted text, validated)
+        id: pr
+        run: |
+          number="$(python3 -I -c 'import json,re,sys; v=str(json.load(open("results/pr.json"))["number"]); sys.exit(1) if not re.fullmatch(r"[0-9]{1,9}", v) else print(v)')"
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch the diff and the PR text as data
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          gh api -H "Accept: application/vnd.github.diff" "repos/$REPO/pulls/$PR_NUMBER" > pr.diff
+          gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '"Title: " + .title + "\n\n" + (.body // "")' > pr-text.txt
+
+      - name: AI review (a model outage gives status skipped)
+        run: |
+          mkdir -p results/ai
+          python3 -I gate/scripts/ai_review.py --diff pr.diff --pr-text pr-text.txt --out results/ai \
+            --prompts gate/prompts --sim-dir sim || true
+
+      - name: Write the report
+        run: |
+          python3 -I gate/scripts/report.py --results results --out report \
+            --run-url "$GITHUB_SERVER_URL/$REPO/actions/runs/$RUN_ID" || true
+          cat report/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post or edit the single comment
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          marker='<!-- smoothie-gate-report -->'
+          id="$(gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments" \
+            --jq "[.[] | select(.body | startswith(\"$marker\"))][0].id // empty")"
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@report/comment.md
+          else
+            gh api -X POST "repos/$REPO/issues/$PR_NUMBER/comments" -F body=@report/comment.md
+          fi
+
+      - name: Keep the full report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-report
+          path: |
+            report
+            results/ai

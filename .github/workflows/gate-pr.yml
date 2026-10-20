@@ -1,0 +1,111 @@
+name: gate-pr
+
+# Untrusted half of smoothie-gate. Runs on pull requests, including from forks, with a read-only token and no
+# secrets. It builds base and pull request, measures size, runs the simulator cases and uploads the result files.
+# The comment is posted by gate-comment, which only reads these files as data.
+on:
+  pull_request:
+    branches: [edge]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gate-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      TOOLCHAIN_URL: https://launchpad.net/gcc-arm-embedded/4.8/4.8-2014-q1-update/+download/gcc-arm-none-eabi-4_8-2014q1-20140314-linux.tar.bz2
+      TOOLCHAIN_SHA256: ce92859550819d4a3d1a6e2672ea64882b30afa2c08cf67fa8e1d93788c2c577
+    steps:
+      - name: Check out the pull request
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: pr
+          persist-credentials: false
+
+      - name: Check out the base commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+          persist-credentials: false
+
+      - name: Check out smoothie-gate (pinned)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ vars.GATE_REPO }}
+          ref: ${{ vars.GATE_REF }}
+          path: gate
+          persist-credentials: false
+
+      - name: Check out smoothie-sim (pinned)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ vars.SIM_REPO }}
+          ref: ${{ vars.SIM_REF }}
+          path: sim
+          persist-credentials: false
+
+      - name: Install the pinned ARM toolchain (gcc 4.8 2014q1, checked against a SHA-256)
+        run: |
+          curl -fsSL -o toolchain.tar.bz2 "$TOOLCHAIN_URL"
+          echo "$TOOLCHAIN_SHA256  toolchain.tar.bz2" | sha256sum -c -
+          mkdir toolchain && tar xjf toolchain.tar.bz2 -C toolchain --strip-components=1
+          echo "$PWD/toolchain/bin" >> "$GITHUB_PATH"
+
+      - name: Prepare the four build trees
+        run: |
+          mkdir -p results
+          for label in base pr; do
+            for type in release debug; do cp -r "$label" "tree-$label-$type"; done
+          done
+          printf '{"number": %s}\n' "$PR_NUMBER" > results/pr.json
+
+      - name: Build base and pull request, Release and Debug
+        id: build
+        continue-on-error: true
+        run: |
+          status=0
+          for label in base pr; do
+            for type in release debug; do
+              if [ "$type" = debug ]; then build_type=Debug; extra="--measure-only"; else build_type=Release; extra=""; fi
+              mkdir -p "results/build-$label-$type"
+              python3 -I gate/scripts/build.py --runner make --tree "$PWD/tree-$label-$type" \
+                --out "$PWD/results/build-$label-$type" --build-type "$build_type" --label "$label" \
+                --toolchain gcc48 --jobs "$(nproc)" $extra || status=1
+            done
+          done
+          exit $status
+
+      - name: Size
+        if: steps.build.outcome == 'success'
+        run: |
+          python3 -I gate/scripts/size.py \
+            --base-release tree-base-release/LPC1768/main.elf --pr-release tree-pr-release/LPC1768/main.elf \
+            --base-debug tree-base-debug/LPC1768/main.elf --pr-debug tree-pr-debug/LPC1768/main.elf \
+            --base-rev "$BASE_SHA" --toolchain gcc48 --sim-dir "$PWD/sim" --out results/size.result.json
+
+      - name: Build the simulator and compare step traces
+        continue-on-error: true
+        run: |
+          make -C sim -j"$(nproc)" COVERAGE=0 SMOOTHIE_SRC="$PWD/pr" BUILD="$PWD/simbuild" "$PWD/simbuild/smoothie-sim"
+          mkdir -p results/sim
+          python3 -I gate/scripts/sim_stage.py --sim "$PWD/simbuild/smoothie-sim" --cases gate/cases \
+            --out results/sim --sim-dir "$PWD/sim"
+
+      - name: Upload the result files (data only, no binaries)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-results
+          path: |
+            results/pr.json
+            results/**/*.result.json
+          if-no-files-found: error
