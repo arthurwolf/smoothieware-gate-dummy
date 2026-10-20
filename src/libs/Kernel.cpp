@@ -403,3 +403,4 @@ void Kernel::unregister_for_event(_EVENT_ENUM id_event, Module *mod)
 // gate test: harmless comment (PR 2)
 // gate test: retrigger
 // gate test: second push
+// gate test: outage push
