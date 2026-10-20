@@ -15,15 +15,18 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gate_result import make_result  # noqa: E402
 
 BUILD_TYPES = ("Release", "Debug")  # Release = -O2, Debug = -O0 (src/makefile BUILD_TYPE)
-TAIL_LINES = 40
 
 
-def tail_file(path, lines=TAIL_LINES):
+def failure_excerpt(path, error_lines=15, tail_lines=15):
+    """Compiler errors first (a parallel make buries them under 'Compiling' lines), then the last lines."""
     try:
         with open(path, errors="replace") as handle:
-            return "".join(handle.readlines()[-lines:])
+            lines = handle.read().splitlines()
     except OSError:
         return ""
+    errors = [line for line in lines if " error" in line or "Error " in line or "***" in line][:error_lines]
+    tail = lines[-tail_lines:]
+    return "\n".join(errors + (["..."] if errors else []) + tail)
 
 
 LINKER_SCRIPT = os.path.join("mbed", "src", "vendor", "NXP", "cmsis", "LPC1768", "GCC_ARM", "LPC1768.ld")
@@ -110,10 +113,10 @@ def main():
         result = make_result(stage, "error", title, "build finished but main.elf is missing",
                              details=f"Expected {elf}.")
     else:
-        log = tail_file(receipt["stderr"]) if receipt else ""
-        log = log or (tail_file(receipt["stdout"]) if receipt else "") or errors
+        log = failure_excerpt(receipt["stderr"]) if receipt else ""
+        log = log or (failure_excerpt(receipt["stdout"]) if receipt else "") or errors
         result = make_result(stage, "fail", title, f"{args.label} does not compile in {args.build_type}",
-                             details="Last lines of the compiler output:\n\n```\n" + log + "\n```",
+                             details="Compiler errors, then the last lines of the output:\n\n```\n" + log + "\n```",
                              metrics={"exit_code": code, "toolchain": args.toolchain, "build_type": args.build_type})
     with open(os.path.join(args.out, "build.result.json"), "w") as handle:
         json.dump(result, handle, indent=1)

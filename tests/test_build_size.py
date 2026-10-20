@@ -9,6 +9,13 @@ from gate_result import validate_result  # noqa: E402
 
 
 class BuildTests(unittest.TestCase):
+    def test_failure_excerpt_puts_compiler_errors_before_the_tail(self):
+        path = os.path.join(tempfile.mkdtemp(dir=os.environ.get("TMPDIR")), "make.log")
+        open(path, "w").write("Compiling a.cpp\nKernel.cpp:403:1: error: 'this' does not name a type\n" + "Compiling b.c\n" * 40)
+        excerpt = build.failure_excerpt(path)
+        self.assertTrue(excerpt.startswith("Kernel.cpp:403:1: error"))
+        self.assertIn("...", excerpt)
+
     def make_tree(self, line):
         tree = tempfile.mkdtemp(dir=os.environ.get("TMPDIR"))
         path = os.path.join(tree, build.LINKER_SCRIPT)
