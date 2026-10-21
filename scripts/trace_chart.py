@@ -113,7 +113,7 @@ def valid_sample(sample):
             return False
         if not all(_valid_side(b["r"]) and _valid_side(b["p"]) for b in blocks + rows):
             return False
-        if sample.get("reason") is not None and not isinstance(sample["reason"], str):
+        if sample.get("reason") is not None and not (isinstance(sample["reason"], str) and len(sample["reason"]) <= 200):
             return False
         return _valid_pulses(sample.get("pulses"))
     except (KeyError, TypeError):
@@ -246,7 +246,9 @@ def _drift_rows(parts, y, p, ax):
         colour = RED if any(a["drift"]) else MUTED
         parts.append(_line(pts, colour, 1.8))
         last = a["drift"][-1]
-        parts.append(text(LEFT + PLOT_W - 3, y + 10, f"{last:+,d} steps at the end" if last else "no drift at the end", 9, colour if last else MUTED, anchor="end", family=MONO))
+        label = text(LEFT + PLOT_W - 3, y + 10, f"{last:+,d} steps at the end" if last else "no drift at the end", 9, colour if last else MUTED, anchor="end", family=MONO)
+        # halo so the red drift line returning to zero never strikes through the label
+        parts.append(label.replace("<text ", f'<text stroke="{BG}" stroke-width="3" paint-order="stroke" ', 1))
         parts.append(text(LEFT + 3, y + 10, f"±{peak:,} steps", 9, MUTED, family=MONO))
         y += h + 4
     return y

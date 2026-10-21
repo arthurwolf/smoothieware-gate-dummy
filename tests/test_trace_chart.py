@@ -82,3 +82,16 @@ class TraceChartTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RoundTwoFixes(unittest.TestCase):
+    def test_reason_is_capped(self):
+        import trace_chart
+        sample = trace_chart.sample_case({"blocks": []}, {"blocks": []}, [], None, "x" * 201)
+        self.assertFalse(trace_chart.valid_sample(sample))
+
+    def test_dir_level_seeded_from_step_dirs(self):
+        import pulse_data
+        result = {"blocks": [{"start_tick": 0, "step_ticks": [[5, 10]], "step_tick_stride": [1], "step_dirs": [1]}]}
+        _, dirs = pulse_data._axis_trains(result)
+        self.assertEqual(dirs[0], [(5, 1)])
