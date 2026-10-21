@@ -46,6 +46,7 @@ def run_case(sim, case_dir, out_dir, timeout, attempts=2):
     """Run one case; return (result path or None, problem or None). A problem is (kind, text), kind being
     "crash" (the simulator died on a signal: the change under test crashes the firmware code), "timeout" or "error".
     A crash or timeout is retried once so a one-off hiccup of the runner is not blamed on the pull request."""
+    sim, case_dir, out_dir = os.path.abspath(sim), os.path.abspath(case_dir), os.path.abspath(out_dir)  # the run changes directory
     with open(os.path.join(case_dir, "meta.json")) as handle:
         sim_args = json.load(handle).get("sim_args", [])
     result_path = os.path.join(out_dir, os.path.basename(case_dir) + ".json")

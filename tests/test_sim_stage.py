@@ -134,6 +134,28 @@ class FlakyTests(unittest.TestCase):
         self.assertEqual(json.load(open(os.path.join(out, "sim.result.json")))["status"], "error")
 
 
+class RealProcessTests(unittest.TestCase):
+    def test_relative_paths_work_because_each_case_runs_in_the_output_folder(self):
+        root = tempfile.mkdtemp(dir=os.environ.get("TMPDIR"))
+        case = os.path.join(root, "cases", "one")
+        os.makedirs(case)
+        for name, text in (("config.txt", "c"), ("input.gcode", "g"), ("meta.json", "{}")):
+            open(os.path.join(case, name), "w").write(text)
+        sim = os.path.join(root, "sim.sh")  # fails unless it can read --config and --gcode and write --out
+        open(sim, "w").write('#!/bin/sh\ncat "$2" "$4" >/dev/null || exit 2\necho {} > "$6"\n')
+        os.chmod(sim, 0o755)
+        out = os.path.join(root, "out")
+        os.makedirs(out)
+        previous = os.getcwd()
+        os.chdir(root)
+        try:
+            path, problem = sim_stage.run_case("sim.sh", "cases/one", "out", 10)
+        finally:
+            os.chdir(previous)
+        self.assertIsNone(problem)
+        self.assertTrue(os.path.isfile(path))
+
+
 class CrashTests(unittest.TestCase):
     def make_case(self):
         root = tempfile.mkdtemp(dir=os.environ.get("TMPDIR"))
