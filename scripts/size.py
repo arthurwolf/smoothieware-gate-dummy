@@ -15,6 +15,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from gate_result import make_result, worst_status  # noqa: E402
+from mdkit import esc, html_table, square_bar  # noqa: E402
 
 DEFAULT_SIM = os.path.join(os.path.dirname(HERE), "..", "smoothie-sim")
 
@@ -28,14 +29,40 @@ def compare(sim_dir, base_elf, pr_elf, tool_prefix, work):
         return json.load(handle)
 
 
+CAPACITY = {"Flash": 512 * 1024, "RAM": 32 * 1024, "AHB RAM": 32 * 1024}  # LPC1768
+ICONS = {"Flash": "💾", "RAM": "🧠", "AHB RAM": "🔌"}
+LEGEND = "🟦 used before and after · 🟧 added by this PR · 🟩 freed by this PR · ⬛ free"
+
+
+def kib(value):
+    return f"{value / 1024:g} KiB"
+
+
 def table(label, data):
-    lines = [f"**{label}**", "", "| Memory | Base (bytes) | PR (bytes) | Change |", "| --- | --- | --- | --- |"]
-    for row in data["rows"]:
-        lines.append(f"| {row['memory']} | {row['reference']} | {row['candidate']} | {row['delta']:+d} |")
+    rows = data["rows"]
+    changes = []
+    for row in rows:
+        shown = f"<b>{row['delta']:+d}</b>" if row["delta"] else "0"
+        changes.append([f"{ICONS[row['memory']]} {row['memory']}", f"{row['reference']:,}", f"{row['candidate']:,}", shown])
+    bars = []
+    for row in rows:
+        capacity = CAPACITY[row["memory"]]
+        squares, unit = square_bar(row["reference"], row["candidate"], capacity)
+        percent = 100.0 * row["candidate"] / capacity
+        bars.append([f"{ICONS[row['memory']]} {row['memory']}", squares,
+                     f"{row['candidate']:,} of {capacity:,} B ({percent:.1f} %)"])
+    lines = [f"<b>{esc(label)}</b>", "",
+             html_table(["Memory", "Base (bytes)", "PR (bytes)", "Change (bytes)"], changes,
+                        aligns=[None, "right", "right", "right"]), "",
+             html_table(["Memory map", "One square = flash 16 KiB, RAM 1 KiB", "Used after this PR"], bars,
+                        widths=["12%", "58%", "30%"]), "", LEGEND]
+    if any(row["candidate"] > CAPACITY[row["memory"]] for row in rows):
+        lines += ["", "<sub>This build does not fit the chip (-O0 is larger than the flash); the bar is capped "
+                      "at the chip size and the measurement only compares base and PR.</sub>"]
     # "$t" and "$d" are ARM mapping symbols (code/data markers), not program symbols.
     grown = [c for c in data["top_symbol_changes"] if c["delta"] > 0 and not c["symbol"].startswith("$")][:8]
     if grown:
-        lines += ["", "Symbols that grew most:", ""] + [f"- `{c['symbol']}` {c['delta']:+d} B" for c in grown]
+        lines += ["", "📈 Symbols that grew most:", ""] + [f"- <code>{esc(c['symbol'])}</code> {c['delta']:+d} B" for c in grown]
     return "\n".join(lines)
 
 
@@ -47,8 +74,8 @@ def main():
     parser.add_argument("--base-rev", default="unknown", help="base revision to name in the report")
     parser.add_argument("--toolchain", default="gcc48")
     parser.add_argument("--tool-prefix", default="", help="binutils prefix; empty = host binutils")
-    parser.add_argument("--warn-flash", type=int, default=512, help="warn above this flash growth in bytes")
-    parser.add_argument("--warn-ram", type=int, default=64, help="warn above this RAM growth in bytes (RAM + AHB RAM)")
+    parser.add_argument("--warn-flash", type=int, default=64, help="warn above this flash growth in bytes")
+    parser.add_argument("--warn-ram", type=int, default=4, help="warn above this RAM growth in bytes (RAM + AHB RAM)")
     parser.add_argument("--sim-dir", default=os.environ.get("SMOOTHIE_SIM", DEFAULT_SIM))
     parser.add_argument("--out", required=True, help="path of size.result.json")
     args = parser.parse_args()

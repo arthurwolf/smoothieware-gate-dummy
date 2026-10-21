@@ -28,6 +28,7 @@ import urllib.request
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from gate_result import make_result  # noqa: E402
+from mdkit import safe_prose  # noqa: E402
 
 ROOT = os.path.dirname(HERE)
 DEFAULT_BASE_URL = "https://api.kilo.ai/api/gateway"
@@ -304,13 +305,23 @@ def safe_text(text):
     return re.sub(r"(https?)://", lambda m: m.group(1) + "\u200b://", text)
 
 
+SEVERITY_ICON = {"high": "🔴", "medium": "🟠", "low": "🟡"}
+RULE_ICON = {"blocking-wait": "⏱️", "safe-delay": "⏳", "busy-loop": "🔁", "idle-starvation": "😴", "header-includes": "📎",
+             "header-code": "📄", "ifdef": "🧩", "cpp-practice": "🧹", "formatting": "🎨", "warnings": "⚠️",
+             "scope": "🎯", "compatibility": "🔌", "binary-files": "📦", "setup-specific": "🛠️",
+             "config-samples": "🗂️", "language": "🌐", "pr-description": "📝", "general": "🔍"}
+
+
 def render_findings(findings):
     lines = []
     for item in findings:
-        where = f"`{item['file']}:{item['line']}`" if item.get("line") else (f"`{item['file']}`" if item.get("file") else "PR text")
-        origin = "pattern scan" if item["source"] == "scan" else f"model, confidence {item['confidence']:.1f}"
-        lines.append(f"- **{item['severity']}** `{item['rule']}` {where} ({origin}): {safe_text(item['message'])}\n"
-                     f"  Quoted: `{safe_text(item['evidence'])}`")
+        where = f"<code>{safe_prose(item['file'])}:{item['line']}</code>" if item.get("line") else (
+            f"<code>{safe_prose(item['file'])}</code>" if item.get("file") else "the PR text")
+        origin = "🔎 pattern scan" if item["source"] == "scan" else f"🤖 model, confidence {item['confidence']:.1f}"
+        lines.append(f"- {SEVERITY_ICON.get(item['severity'], '🟡')} **{item['severity']}** · "
+                     f"{RULE_ICON.get(item['rule'], '🔍')} <code>{item['rule']}</code> · 📄 {where} · {origin}<br>"
+                     f"💬 {safe_prose(item['message'])}<br>"
+                     f"📌 Quoted: <code>{safe_text(item['evidence'])}</code>")
     return "\n".join(lines)
 
 
@@ -409,9 +420,9 @@ def main():
     if sure:
         details.append(render_findings(sure))
     if unsure:
-        details.append("Low confidence (the model could not confirm from the diff alone):\n\n" + render_findings(unsure))
+        details.append("🤔 Low confidence (the model could not confirm from the diff alone):\n\n" + render_findings(unsure))
     if errors:
-        details.append("Model problems:\n\n" + "\n".join("- " + safe_text(e) for e in errors))
+        details.append("🛑 Model problems:\n\n" + "\n".join("- " + safe_text(e) for e in errors))
     if unreviewed:
         details.append(f"{unreviewed} request(s) of diff text were not reviewed (diff larger than {args.max_chunks} requests).")
     if blocking:

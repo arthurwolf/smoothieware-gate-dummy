@@ -141,6 +141,12 @@ def main():
         ai_command.append("--no-model")
     stage("ai-review", ai_command)
 
+    guidance_command = [sys.executable, "-I", os.path.join(HERE, "guidance.py"), "--results", results, "--diff", diff_path,
+                        "--pr-text", pr_text, "--out", os.path.join(results, "guidance"), "--prompts", os.path.join(ROOT, "prompts")]
+    if args.no_model:
+        guidance_command.append("--no-model")
+    stage("guidance", guidance_command)
+
     report_dir = os.path.join(out, "report")
     os.makedirs(report_dir)
     done = stage("report", [sys.executable, "-I", os.path.join(HERE, "report.py"), "--results", results, "--out", report_dir])

@@ -65,10 +65,23 @@ class SizeTests(unittest.TestCase):
 
     def test_table_hides_mapping_symbols_and_shrinkage(self):
         text = size.table("Release", self.DATA)
-        self.assertIn("| Flash | 10 | 15 | +5 |", text)
-        self.assertIn("`foo()` +5 B", text)
-        self.assertNotIn("`$t`", text)
+        self.assertIn('<td align="right"><b>+5</b></td>', text)
+        self.assertIn("<code>foo()</code> +5 B", text)
+        self.assertNotIn("$t", text)
         self.assertNotIn("bar", text)
+
+    def test_table_is_full_width_and_has_square_bars_with_legend(self):
+        text = size.table("Release", self.DATA)
+        self.assertIn('<table width="100%">', text)
+        self.assertIn("🟧", text)
+        self.assertIn("used before and after", text)
+
+    def test_default_warning_limits_are_strict(self):
+        defaults = {a.dest: a.default for a in size.argparse.ArgumentParser()._actions}  # noqa: F841
+        import inspect
+        source = inspect.getsource(size.main)
+        self.assertIn('"--warn-flash", type=int, default=64', source)
+        self.assertIn('"--warn-ram", type=int, default=4', source)
 
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ class ReportTest(unittest.TestCase):
             text = report.render_comment(results, problems, "https://example.invalid/run")
         self.assertTrue(text.startswith(report.MARKER))
         self.assertIn("❌ fail", text.splitlines()[1])
-        self.assertIn("<details>", text)
+        self.assertIn("<details open>", text)
 
     def test_invalid_file_is_reported_not_skipped(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -44,11 +44,12 @@ class ReportTest(unittest.TestCase):
 
     def test_details_cannot_break_out(self):
         with tempfile.TemporaryDirectory() as tmp:
-            write(tmp, "a.result.json", details="```\n@maintainer")
+            write(tmp, "a.result.json", details="hi @outside\n```\n@maintainer")
             results, problems = report.load_results(tmp)
             text = report.render_comment(results, problems, "")
-        self.assertNotIn("```", text)
-        self.assertNotIn("@maintainer", text)
+        self.assertEqual(text.count("```"), 2)  # the unterminated fence is closed, so it cannot swallow the rest
+        self.assertNotIn("@outside", text)  # a mention inside a closed fence cannot ping, one outside is defused
+        self.assertIn("</details>", text.split("```")[-1])
 
     def test_cli_exit_code_and_files(self):
         with tempfile.TemporaryDirectory() as tmp:

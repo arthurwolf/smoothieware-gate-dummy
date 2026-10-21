@@ -12,11 +12,13 @@ import argparse
 import importlib.util
 import json
 import os
+import signal
 import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gate_result import make_result  # noqa: E402
+from mdkit import code_block, esc  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SIM_DIR = os.environ.get("SMOOTHIE_SIM", os.path.join(HERE, "..", "..", "smoothie-sim"))
@@ -30,21 +32,40 @@ def load_step_trace(sim_dir):
     return module
 
 
-def run_case(sim, case_dir, out_dir, timeout):
-    """Run one case; return (trace_text or None, error text or None)."""
+def signal_name(code):
+    """Shell style (128+n) and Python style (-n) exit codes of a killed process -> 'SIGSEGV (segmentation fault)'."""
+    number = -code if code < 0 else code - 128
+    try:
+        name = signal.Signals(number).name
+    except ValueError:
+        return f"signal {number}"
+    return f"{name} ({signal.strsignal(number).lower()})"
+
+
+def run_case(sim, case_dir, out_dir, timeout, attempts=2):
+    """Run one case; return (result path or None, problem or None). A problem is (kind, text), kind being
+    "crash" (the simulator died on a signal: the change under test crashes the firmware code), "timeout" or "error".
+    A crash or timeout is retried once so a one-off hiccup of the runner is not blamed on the pull request."""
     with open(os.path.join(case_dir, "meta.json")) as handle:
         sim_args = json.load(handle).get("sim_args", [])
     result_path = os.path.join(out_dir, os.path.basename(case_dir) + ".json")
     command = [sim, "--config", os.path.join(case_dir, "config.txt"), "--gcode", os.path.join(case_dir, "input.gcode"),
                "--out", result_path] + sim_args
-    try:
-        completed = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        return None, f"simulator timed out after {timeout} s"
-    if completed.returncode != 0:
-        return None, f"simulator exited {completed.returncode}: {completed.stderr.strip()[-300:]}"
-    with open(result_path) as handle:
-        return result_path, None
+    problem = None
+    for _ in range(attempts):
+        try:
+            completed = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            problem = ("timeout", f"the simulator did not finish within {timeout} s")
+            continue
+        if completed.returncode == 0:
+            return result_path, None
+        tail = completed.stderr.strip()[-600:]
+        if completed.returncode < 0 or completed.returncode > 128:
+            problem = ("crash", f"the simulator crashed with {signal_name(completed.returncode)}" + (f"\n{tail}" if tail else ""))
+            continue
+        return None, ("error", f"the simulator exited with code {completed.returncode}" + (f"\n{tail}" if tail else ""))
+    return None, problem
 
 
 def main():
@@ -61,14 +82,20 @@ def main():
     step_trace = load_step_trace(args.sim_dir)
     names = sorted(n for n in os.listdir(args.cases) if os.path.isfile(os.path.join(args.cases, n, "config.txt")))
     names = [n for n in names if not args.only or n in args.only]
-    failed, errored, passed = [], [], []
-    lines = []
+    failed, crashed, errored, passed = [], [], [], []
+    lines, crash_notes = [], []
     for name in names:
         case_dir = os.path.join(args.cases, name)
         result_path, error = run_case(args.sim, case_dir, args.out, args.timeout)
         if error:
-            errored.append(name)
-            lines.append(f"- `{name}`: {error}")
+            kind, text = error
+            first, _, rest = text.partition("\n")
+            if kind == "crash":
+                crashed.append(name)
+                crash_notes.append(f"💥 <code>{esc(name)}</code>: {esc(first)}" + ("\n\n" + code_block(rest) if rest else ""))
+            else:
+                errored.append(name)
+                lines.append(f"- 🛑 `{name}`: {first}")
             continue
         with open(result_path) as handle:
             trace = step_trace.record(json.load(handle))
@@ -82,7 +109,7 @@ def main():
             continue
         if not os.path.isfile(expected_path):
             errored.append(name)
-            lines.append(f"- `{name}`: no expected.trace (record one and review it)")
+            lines.append(f"- 🛑 `{name}`: no expected.trace (record one and review it)")
             continue
         with open(expected_path) as handle:
             outcome = step_trace.compare(handle.read(), trace)
@@ -92,21 +119,36 @@ def main():
         failed.append(name)
         shown = (outcome["exact"] + outcome["timing"])[:3]
         more = len(outcome["exact"]) + len(outcome["timing"]) - len(shown)
-        lines.append(f"- `{name}`: " + "; ".join(shown) + (f"; and {more} more" if more > 0 else ""))
+        lines.append(f"- ❌ `{name}`: " + "; ".join(shown) + (f"; and {more} more" if more > 0 else ""))
         print(json.dumps({"type": "warning", "case": name, "exact": len(outcome["exact"]), "timing": len(outcome["timing"])}))
 
     total = len(names)
-    metrics = {"cases": total, "passed": len(passed), "failed": len(failed), "errors": len(errored)}
+    metrics = {"cases": total, "passed": len(passed), "failed": len(failed), "crashed": len(crashed),
+               "errors": len(errored)}
     title = "Simulator step traces"
+    parts = []
+    if crash_notes:
+        parts.append("The simulator, built from this pull request, died on these inputs. A crash on a plain G-code "
+                     "file is a bug in the firmware code of the pull request (the same case runs fine on the base).\n\n"
+                     + "\n\n".join(crash_notes))
+    if failed:
+        parts.append("Cases whose steps differ from expected.trace:\n\n" + "\n".join(l for l in lines if l.startswith("- ❌")))
+    if errored:
+        parts.append("Cases that could not run (a problem of the check, not necessarily of the pull request):\n\n"
+                     + "\n".join(l for l in lines if l.startswith("- 🛑")))
+    details = "\n\n".join(parts)
     if args.record:
         result = make_result("sim", "pass", title, f"recorded {len(passed)} of {total} reference traces", metrics=metrics,
-                             details="\n".join(lines))
+                             details=details)
+    elif crashed:
+        result = make_result("sim", "fail", title, f"{len(crashed)} of {total} cases crash the simulator"
+                             + (f", {len(failed)} emit different steps" if failed else ""), details=details, metrics=metrics)
     elif failed:
         result = make_result("sim", "fail", title, f"{len(failed)} of {total} cases emit different steps",
-                             details="Cases whose steps differ from expected.trace:\n\n" + "\n".join(lines), metrics=metrics)
+                             details=details, metrics=metrics)
     elif errored:
         result = make_result("sim", "error", title, f"{len(errored)} of {total} cases could not run",
-                             details="\n".join(lines), metrics=metrics)
+                             details=details, metrics=metrics)
     else:
         result = make_result("sim", "pass", title, f"all {total} cases emit the reference steps", metrics=metrics)
     with open(os.path.join(args.out, "sim.result.json"), "w") as handle:

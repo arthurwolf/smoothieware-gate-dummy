@@ -79,5 +79,48 @@ class StageTests(unittest.TestCase):
         self.assertEqual(data["status"], "error")
 
 
+class CrashTests(unittest.TestCase):
+    def make_case(self):
+        root = tempfile.mkdtemp(dir=os.environ.get("TMPDIR"))
+        case = os.path.join(root, "one")
+        os.makedirs(case)
+        for name, text in (("config.txt", ""), ("input.gcode", ""), ("meta.json", "{}")):
+            open(os.path.join(case, name), "w").write(text)
+        return root, case
+
+    def test_signal_names(self):
+        self.assertIn("SIGSEGV", sim_stage.signal_name(-11))
+        self.assertIn("SIGSEGV", sim_stage.signal_name(139))
+
+    def test_crash_is_retried_once_then_reported_as_crash(self):
+        root, case = self.make_case()
+        completed = mock.Mock(returncode=-11, stderr="")
+        with mock.patch.object(sim_stage.subprocess, "run", return_value=completed) as run:
+            path, problem = sim_stage.run_case("sim", case, root, 5)
+        self.assertEqual(run.call_count, 2)
+        self.assertEqual(problem[0], "crash")
+        self.assertIn("SIGSEGV", problem[1])
+
+    def test_one_off_crash_then_success_passes(self):
+        root, case = self.make_case()
+        replies = [mock.Mock(returncode=-11, stderr=""), mock.Mock(returncode=0, stderr="")]
+        with mock.patch.object(sim_stage.subprocess, "run", side_effect=replies):
+            path, problem = sim_stage.run_case("sim", case, root, 5)
+        self.assertIsNone(problem)
+
+    def test_crash_makes_the_stage_fail_not_error(self):
+        root, case = self.make_case()
+        out = os.path.join(root, "out")
+        os.makedirs(out)
+        argv = ["sim_stage.py", "--sim", "x", "--cases", root, "--out", out, "--sim-dir", SIM_DIR]
+        with mock.patch.object(sim_stage, "run_case", return_value=(None, ("crash", "the simulator crashed with SIGSEGV"))), \
+                mock.patch.object(sys, "argv", argv):
+            code = sim_stage.main()
+        data = json.load(open(os.path.join(out, "sim.result.json")))
+        self.assertEqual((code, data["status"]), (1, "fail"))
+        self.assertIn("crash", data["summary"])
+        self.assertEqual(validate_result(data), [])
+
+
 if __name__ == "__main__":
     unittest.main()

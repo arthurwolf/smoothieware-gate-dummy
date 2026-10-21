@@ -16,11 +16,18 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gate_result import validate_result, worst_status  # noqa: E402
+from mdkit import clip_markdown, esc, html_table, neutralize_mentions  # noqa: E402
 
 MARKER = "<!-- smoothie-gate-report -->"
-STAGE_ORDER = ["build", "size", "ai-review", "sim"]
+STAGE_ORDER = ["build", "sim", "size", "ai-review"]  # a prefix match: build-pr-release counts as "build"
+STAGE_ICON = {"build": "🔨", "sim": "🎛️", "size": "📏", "ai-review": "🤖", "guidance": "💌"}
+VERDICT = {"pass": "✅ Every check passed.",
+           "warn": "⚠️ Nothing blocks this pull request, but a few things deserve a look.",
+           "fail": "❌ Something has to change before this pull request can be accepted.",
+           "error": "🛑 A check could not run properly, so the result is incomplete.",
+           "skipped": "⏭️ No check produced a verdict."}
 ICON = {"pass": "✅", "warn": "⚠️", "fail": "❌", "skipped": "⏭️", "error": "🛑"}
-MAX_DETAILS = 6000
+MAX_DETAILS = 12000
 
 
 def overall_status(results, problems):
@@ -45,37 +52,51 @@ def load_results(results_dir):
             problems.append(f"{os.path.basename(path)}: " + "; ".join(issues))
             continue
         results.append(data)
-    results.sort(key=lambda r: (STAGE_ORDER.index(r["stage"]) if r["stage"] in STAGE_ORDER else 99, r["title"]))
+    results.sort(key=lambda r: (stage_rank(r["stage"]), r["title"]))
     return results, problems
 
 
-def clip(text):
-    return text if len(text) <= MAX_DETAILS else text[:MAX_DETAILS] + "\n… (truncated, see the run artifact)"
+def stage_kind(stage):
+    return stage.split("-")[0] if stage.startswith("build-") else stage
 
 
-def fence_safe(text):
-    """Details come from PR-controlled output: neutralise code fences and mentions before embedding."""
-    return text.replace("```", "ʼʼʼ").replace("@", "@​")
+def stage_rank(stage):
+    kind = stage_kind(stage)
+    return STAGE_ORDER.index(kind) if kind in STAGE_ORDER else 99
 
 
 def render_comment(results, problems, run_url):
-    overall = overall_status(results, problems)
-    lines = [MARKER, f"## smoothie-gate {ICON[overall]} {overall}", ""]
-    if not results and not problems:
+    """One comment: headline, a full-width summary table, one section per stage, then the message to the contributor.
+    Stage details are Markdown the stages built (their own fences and escapes); mentions are defused again here."""
+    checks = [r for r in results if r["stage"] != "guidance"]
+    guidance = next((r for r in results if r["stage"] == "guidance" and r["details"].strip()), None)
+    overall = overall_status(checks, problems)
+    lines = [MARKER, f"## 🛡️ smoothie-gate · {ICON[overall]} {overall}", "", VERDICT[overall], ""]
+    if not checks and not problems:
         lines.append("No stage produced a result.")
-    lines += ["| Check | Status | Summary |", "| --- | --- | --- |"]
-    for r in results:
-        lines.append(f"| {r['title']} | {ICON[r['status']]} {r['status']} | {r['summary'].replace('|', '/')} |")
+    rows = []
+    for r in checks:
+        icon = STAGE_ICON.get(stage_kind(r["stage"]), "▫️")
+        status = f"{ICON[r['status']]} <b>{r['status']}</b>" if r["status"] in ("fail", "error") else f"{ICON[r['status']]} {r['status']}"
+        rows.append([f"{icon} {esc(r['title'])}", status, esc(r["summary"])])
     for problem in problems:
-        lines.append(f"| result file | {ICON['error']} error | {problem.replace('|', '/')} |")
-    for r in results:
-        if r["details"].strip():
-            lines += ["", f"<details><summary>{html.escape(r['title'])}</summary>", "",
-                      fence_safe(clip(r["details"])), "", "</details>"]
-    lines += ["", "Size growth, review findings and warnings are advice for maintainers. "
-              "Only a failed build, a forbidden blocking call or an unexplained simulator step mismatch fails the run."]
+        rows.append(["📄 result file", f"{ICON['error']} <b>error</b>", esc(problem)])
+    lines += [html_table(["Check", "Status", "Summary"], rows, widths=["30%", "14%", "56%"])]
+    for r in checks:
+        if not r["details"].strip():
+            continue
+        icon = STAGE_ICON.get(stage_kind(r["stage"]), "▫️")
+        is_open = " open" if r["stage"] == "size" or (r["status"] != "pass" and len(r["details"]) < 4000) else ""
+        lines += ["", f"<details{is_open}><summary>{icon} <b>{esc(r['title'])}</b> · {esc(r['summary'])}</summary>", "",
+                  neutralize_mentions(clip_markdown(r["details"], MAX_DETAILS)), "", "</details>"]
+    if guidance:
+        lines += ["", "---", "", "## 💌 A message for the contributor", "",
+                  neutralize_mentions(clip_markdown(guidance["details"], MAX_DETAILS))]
+    lines += ["", "---", "", "<sub>Size growth, review findings and warnings are advice for maintainers. "
+              "Only a failed build, a forbidden blocking call, a simulator crash or an unexplained step mismatch "
+              "fails the run.</sub>"]
     if run_url:
-        lines.append(f"Full logs and artifacts: {run_url}")
+        lines.append(f"<sub>🔗 Full logs and artifacts: {run_url}</sub>")
     return "\n".join(lines) + "\n"
 
 

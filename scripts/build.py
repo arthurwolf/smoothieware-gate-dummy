@@ -13,6 +13,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gate_result import make_result  # noqa: E402
+from mdkit import code_block  # noqa: E402
 
 BUILD_TYPES = ("Release", "Debug")  # Release = -O2, Debug = -O0 (src/makefile BUILD_TYPE)
 
@@ -117,7 +118,7 @@ def main():
         log = failure_excerpt(receipt["stderr"]) if receipt else ""
         log = log or (failure_excerpt(receipt["stdout"]) if receipt else "") or errors
         result = make_result(stage, "fail", title, f"{args.label} does not compile in {args.build_type}",
-                             details="Compiler errors, then the last lines of the output:\n\n```\n" + log + "\n```",
+                             details="🔨 The compiler errors, then the last lines of the build output:\n\n" + code_block(log),
                              metrics={"exit_code": code, "toolchain": args.toolchain, "build_type": args.build_type})
     with open(os.path.join(args.out, "build.result.json"), "w") as handle:
         json.dump(result, handle, indent=1)

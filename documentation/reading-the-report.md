@@ -8,3 +8,11 @@ The top line is the worst status of all checks: pass, skipped (ignored when othe
 - **error**: the gate itself broke (a stage produced no valid result). Not a verdict on the PR.
 
 Size tables show base and PR bytes and the signed change for Release (-O2) and Debug (-O0). Debug images are linked with an enlarged flash region just to be measured; they do not fit the real chip and must never be flashed. AI findings quote the line they are about; treat them as questions, not verdicts.
+
+## Memory map and legend
+
+Under each size table a row of squares shows the chip: 🟦 used before and after, 🟧 added by the pull request, 🟩 freed, ⬛ free. One square is 16 KiB of flash or 1 KiB of RAM; any change shows as at least one square. Warnings start above +64 B flash or +4 B RAM.
+
+## Message to the contributor
+
+At the bottom, an AI-written message thanks the contributor and lists what must change and what is nice to have, with short suggested code or diffs. The suggestions can be naive and are only general directions. It is advice: it never changes the overall status, and it is left out when the model is unavailable.

@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Changed
+- Report: full-width tables, stage icons, and under each flash/RAM table a memory map of coloured squares (🟦 kept, 🟧 added, 🟩 freed, ⬛ free) with a legend.
+- Size warnings are stricter: above +64 B flash or +4 B RAM (were 512 B and 64 B).
+- AI review findings carry severity, rule and source icons.
+- A simulator crash is a failure (signal named, one retry), no longer a generic error.
+
+### Added
+- `scripts/guidance.py`, `prompts/guidance.md`: a polite closing message that tells the contributor what to change, with short suggested code or diffs and a note that they may be naive. Advice only, never changes the status.
+- `scripts/mdkit.py`: shared Markdown helpers (dynamic code fences, fence-aware clipping, mention defusing, square bars).
+
+### Fixed
+- Code blocks in stage details rendered as literal backticks; fences are now kept and closed when a log is clipped.
+
 ### Added
 - `smoothie-gate run` (`bin/smoothie-gate`, `scripts/gate.py`): all stages on a local repository; documentation pages in `documentation/`.
 - Result record schema, validator (`scripts/gate_result.py`), tests, GPL-3.0 `LICENSE` and project skeleton.
