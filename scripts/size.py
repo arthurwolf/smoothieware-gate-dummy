@@ -15,7 +15,7 @@ import tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from gate_result import make_result, worst_status  # noqa: E402
-from mdkit import esc, html_table, square_bar  # noqa: E402
+from mdkit import esc, html_table  # noqa: E402
 
 DEFAULT_SIM = os.path.join(os.path.dirname(HERE), "..", "smoothie-sim")
 
@@ -31,31 +31,21 @@ def compare(sim_dir, base_elf, pr_elf, tool_prefix, work):
 
 CAPACITY = {"Flash": 512 * 1024, "RAM": 32 * 1024, "AHB RAM": 32 * 1024}  # LPC1768
 ICONS = {"Flash": "💾", "RAM": "🧠", "AHB RAM": "🔌"}
-LEGEND = "🟦 used before and after · 🟧 added by this PR · 🟩 freed by this PR · ⬛ free"
 
 
 def kib(value):
     return f"{value / 1024:g} KiB"
 
 
-def table(label, data):
+def table(label, data, chart_key):
     rows = data["rows"]
     changes = []
     for row in rows:
         shown = f"<b>{row['delta']:+d}</b>" if row["delta"] else "0"
         changes.append([f"{ICONS[row['memory']]} {row['memory']}", f"{row['reference']:,}", f"{row['candidate']:,}", shown])
-    bars = []
-    for row in rows:
-        capacity = CAPACITY[row["memory"]]
-        squares, unit = square_bar(row["reference"], row["candidate"], capacity)
-        percent = 100.0 * row["candidate"] / capacity
-        bars.append([f"{ICONS[row['memory']]} {row['memory']}", squares,
-                     f"{row['candidate']:,} of {capacity:,} B ({percent:.1f} %)"])
     lines = [f"<b>{esc(label)}</b>", "",
              html_table(["Memory", "Base (bytes)", "PR (bytes)", "Change (bytes)"], changes,
-                        aligns=[None, "right", "right", "right"]), "",
-             html_table(["Memory map", "One square = flash 16 KiB, RAM 1 KiB", "Used after this PR"], bars,
-                        widths=["12%", "58%", "30%"]), "", LEGEND]
+                        aligns=[None, "right", "right", "right"]), "", f"<!--chart:{chart_key}-->"]
     if any(row["candidate"] > CAPACITY[row["memory"]] for row in rows):
         lines += ["", "<sub>This build does not fit the chip (-O0 is larger than the flash); the bar is capped "
                       "at the chip size and the measurement only compares base and PR.</sub>"]
@@ -80,7 +70,8 @@ def main():
     parser.add_argument("--out", required=True, help="path of size.result.json")
     args = parser.parse_args()
 
-    metrics, sections, statuses = {"base_revision": args.base_rev, "toolchain": args.toolchain}, [], []
+    metrics, sections, statuses = {"base_revision": args.base_rev, "toolchain": args.toolchain,
+                                   "warn_flash": args.warn_flash, "warn_ram": args.warn_ram}, [], []
     summary = []
     with tempfile.TemporaryDirectory() as work:
         for build_type, label in (("release", "Release (-O2)"), ("debug", "Debug (-O0)")):
@@ -93,7 +84,12 @@ def main():
                             f"flash_pr_{build_type}": data["rows"][0]["candidate"]})
             statuses.append("warn" if flash > args.warn_flash or ram > args.warn_ram else "pass")
             summary.append(f"{build_type.capitalize()} flash {flash:+d} B, RAM {ram:+d} B")
-            sections.append(table(label, data))
+            sections.append(table(label, data, f"size-{build_type}"))
+            grown = [[c["symbol"], c["delta"]] for c in data["top_symbol_changes"]
+                     if c["delta"] > 0 and not c["symbol"].startswith("$")][:6]
+            chart = {"label": label, "rows": [[r["memory"], r["reference"], r["candidate"]] for r in data["rows"]],
+                     "symbols": grown}
+            metrics[f"chart_{build_type}"] = json.dumps(chart)
     note = (f"Base revision {args.base_rev}, toolchain {args.toolchain}. Heap and stack are not counted. "
             f"Warns above +{args.warn_flash} B flash or +{args.warn_ram} B RAM; growth never fails the gate.")
     result = make_result("size", worst_status(statuses), "Flash and RAM", "; ".join(summary),

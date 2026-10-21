@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 import guidance  # noqa: E402
 from gate_result import validate_result  # noqa: E402
 
-ANSWER = {"opening": "Thank you @bob for this!", "verdict": "needs-changes",
+ANSWER = {"opening": "Thank you @bob for this!", "verdict": "changes suggested",
           "must_fix": [{"title": "Remove wait()", "explanation": "It blocks the `main loop` <b>x</b>.", "fix": "Use a tick.",
                         "code": "-    wait(0.01F);\n+    // removed ``` oops", "language": "diff"}],
           "nice_to_have": [{"title": "Shorter name", "explanation": "Minor.", "fix": ""}], "closing": "Cheers"}
@@ -24,7 +24,7 @@ def write_results(directory, status):
 class GuidanceTests(unittest.TestCase):
     def test_render_is_fixed_markdown_without_injection(self):
         text, verdict = guidance.render(ANSWER)
-        self.assertEqual(verdict, "needs-changes")
+        self.assertEqual(verdict, "changes suggested")
         self.assertNotIn("@bob", text)
         self.assertNotIn("<b>", text)
         self.assertIn("<code>main loop</code>", text)
@@ -102,6 +102,37 @@ class GuidanceTests(unittest.TestCase):
         data, _ = self.run_main("fail")
         self.assertEqual(data["status"], "skipped")
 
+
+
+class JudgementFilterTests(unittest.TestCase):
+    BAD = ["Thanks again for the work; the PR is ready to merge!", "This is a great contribution.", "LGTM.",
+           "It looks good to me.", "Worth merging.", "I approve this change.", "Nothing you need to change.",
+           "The PR is acceptable.", "Excellent, well done."]
+
+    def test_judgement_sentences_are_removed(self):
+        for bad in self.BAD:
+            self.assertEqual(guidance.without_judgement(bad), "", bad)
+        self.assertEqual(guidance.without_judgement("Thanks. This is ready to merge! The wait() call blocks."),
+                         "Thanks. The wait() call blocks.")
+
+    def test_neutral_text_passes(self):
+        self.assertEqual(guidance.without_judgement("The build failed in Planner.cpp."), "The build failed in Planner.cpp.")
+        for text in (guidance.NEUTRAL_OPENING, guidance.NEUTRAL_CLOSING, guidance.NEUTRAL_ALL_PASS):
+            self.assertEqual(guidance.without_judgement(text), text)
+
+    def test_render_never_keeps_a_verdict(self):
+        answer = {"opening": "Great work, this is ready to merge!", "closing": "Thanks again for the work; the PR is ready to merge!",
+                  "must_fix": [{"title": "Blocking call", "explanation": "wait() blocks. It is otherwise a good PR.", "fix": "Use a tick."}]}
+        text, verdict = guidance.render(answer)
+        self.assertNotRegex(text, guidance.JUDGEMENT)
+        self.assertIn(guidance.NEUTRAL_CLOSING, text)
+        self.assertIn("wait() blocks.", text)
+
+    def test_prompt_forbids_verdicts(self):
+        with open(os.path.join(ROOT, "prompts", "guidance.md")) as handle:
+            prompt = handle.read()
+        self.assertIn("HARD RULE", prompt)
+        self.assertNotIn('"verdict"', prompt)
 
 if __name__ == "__main__":
     unittest.main()

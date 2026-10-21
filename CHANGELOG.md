@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+- Size section shows real chart images (dark SVG, drawn by `scripts/charts.py`, published on the `gate-images` branch by the comment workflow): memory used with legend, change against the warning limit, symbols that grew most.
+
+### Changed
+- The contributor message never states or implies that a pull request is ready, good, acceptable or worth merging: hard rule in `prompts/guidance.md`, plus a sentence filter in `scripts/guidance.py` that deletes such text from the model's answer. The `verdict` field is gone.
+- The comment workflow needs `contents: write` to push chart images.
+
 ### Changed
 - Report: full-width tables, stage icons, and under each flash/RAM table a memory map of coloured squares (🟦 kept, 🟧 added, 🟩 freed, ⬛ free) with a legend.
 - Size warnings are stricter: above +64 B flash or +4 B RAM (were 512 B and 64 B).

@@ -12,6 +12,7 @@ import glob
 import html
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -23,7 +24,7 @@ STAGE_ORDER = ["build", "sim", "size", "ai-review"]  # a prefix match: build-pr-
 STAGE_ICON = {"build": "🔨", "sim": "🎛️", "size": "📏", "ai-review": "🤖", "guidance": "💌"}
 VERDICT = {"pass": "✅ Every check passed.",
            "warn": "⚠️ Nothing blocks this pull request, but a few things deserve a look.",
-           "fail": "❌ Something has to change before this pull request can be accepted.",
+           "fail": "❌ At least one check failed; the details below say which.",
            "error": "🛑 A check could not run properly, so the result is incomplete.",
            "skipped": "⏭️ No check produced a verdict."}
 ICON = {"pass": "✅", "warn": "⚠️", "fail": "❌", "skipped": "⏭️", "error": "🛑"}
@@ -65,7 +66,18 @@ def stage_rank(stage):
     return STAGE_ORDER.index(kind) if kind in STAGE_ORDER else 99
 
 
-def render_comment(results, problems, run_url):
+def place_charts(text, charts, image_base):
+    """Swap <!--chart:KEY--> tokens for <img> tags; without an image URL or a chart the token is dropped."""
+    def swap(match):
+        chart = charts.get(match.group(1))
+        if not chart or not image_base:
+            return ""
+        return (f'<img src="{html.escape(image_base.rstrip("/") + "/" + chart["file"], quote=True)}" '
+                f'alt="{html.escape(chart["alt"], quote=True)}" width="760">')
+    return re.sub(r"<!--chart:([a-z-]+)-->", swap, text)
+
+
+def render_comment(results, problems, run_url, charts=None, image_base=""):
     """One comment: headline, a full-width summary table, one section per stage, then the message to the contributor.
     Stage details are Markdown the stages built (their own fences and escapes); mentions are defused again here."""
     checks = [r for r in results if r["stage"] != "guidance"]
@@ -88,7 +100,7 @@ def render_comment(results, problems, run_url):
         icon = STAGE_ICON.get(stage_kind(r["stage"]), "▫️")
         is_open = " open" if r["stage"] == "size" or (r["status"] != "pass" and len(r["details"]) < 4000) else ""
         lines += ["", f"<details{is_open}><summary>{icon} <b>{esc(r['title'])}</b> · {esc(r['summary'])}</summary>", "",
-                  neutralize_mentions(clip_markdown(r["details"], MAX_DETAILS)), "", "</details>"]
+                  place_charts(neutralize_mentions(clip_markdown(r["details"], MAX_DETAILS)), charts or {}, image_base), "", "</details>"]
     if guidance:
         lines += ["", "---", "", "## 💌 A message for the contributor", "",
                   neutralize_mentions(clip_markdown(guidance["details"], MAX_DETAILS))]
@@ -112,9 +124,18 @@ def main():
     parser.add_argument("--results", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--run-url", default="")
+    parser.add_argument("--charts", default="", help="charts.json written by charts.py")
+    parser.add_argument("--image-base", default="", help="URL folder that holds the chart images")
     args = parser.parse_args()
     results, problems = load_results(args.results)
-    comment = render_comment(results, problems, args.run_url)
+    charts = {}
+    if args.charts and os.path.exists(args.charts):
+        try:
+            with open(args.charts) as handle:
+                charts = json.load(handle)
+        except (OSError, ValueError):
+            charts = {}
+    comment = render_comment(results, problems, args.run_url, charts, args.image_base)
     os.makedirs(args.out, exist_ok=True)
     for name, text in (("comment.md", comment), ("summary.md", comment.replace(MARKER + "\n", "")),
                        ("report.html", render_html(comment))):

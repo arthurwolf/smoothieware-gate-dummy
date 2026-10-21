@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Closing message of the report: a model tells the contributor, politely, what to change and how. Writes guidance.result.json.
+"""Closing message of the report: a model tells the contributor, politely, what the checks found and how to change it, never whether the pull request is good or worth merging. Writes guidance.result.json.
 
   guidance.py --results DIR --diff pr.diff --out OUT [--pr-text FILE]
 
 Reads every DIR/**/*.result.json (the other stages), the diff and the pull request text (all untrusted: they go to the
 model as delimited data). The answer is validated and rendered with fixed Markdown, so the model cannot inject
 HTML, links, mentions or a code fence. The stage never fails and never changes the overall status: it is advice.
-With nothing to fix it writes a thank-you without calling a model; an unreachable model gives status "skipped".
+With nothing to report it writes a neutral thank-you without calling a model; an unreachable model gives status "skipped".
 """
 import argparse
 import re
@@ -56,8 +56,30 @@ def build_messages(system_prompt, results, pr_text, diff_text):
     return [{"role": "system", "content": system_prompt}, {"role": "user", "content": user}]
 
 
+# The maintainers alone decide whether a pull request is good or gets merged. Whatever the prompt says, the model's text
+# is cut sentence by sentence when it states or implies readiness, approval, quality or merge-worthiness.
+JUDGEMENT = re.compile(
+    r"\bmerg\w*|\bready\b|\bapprov\w*|\baccept(?:ed|able|ance)\b|\blgtm\b|\bship(?:ped)? it\b|\bworth\b|"
+    r"\bdeserv\w*|\bmerit\w*|\blooks? (?:good|great|fine|solid)\b|\bwell done\b|\bnice work\b|\bgreat (?:work|job|pr|patch|"
+    r"contribution|change)s?\b|\bgood (?:pr|pull|patch|change|work|job|contribution|shape|to go)\b|\bexcellent\b|\bsolid\b|"
+    r"\bperfect\w*|\bhigh[- ]quality\b|\bwell[- ](?:written|made|done)\b|\bnothing (?:more |else )?(?:you |to )?(?:need )?to (?:fix|change)\b|"
+    r"\bno (?:further )?(?:changes|work) (?:are |is )?(?:needed|required)\b|\bpoor\b|\bbad (?:pr|patch|change)\b|\bshould (?:not )?be (?:accepted|rejected|included)\b|\breject\w*",
+    re.IGNORECASE)
+SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+NEUTRAL_OPENING = "Thank you for the contribution. Here is what the automatic checks found."
+NEUTRAL_CLOSING = "Thank you for the time you put into this. The maintainers will review it and decide what happens next."
+NEUTRAL_ALL_PASS = ("Thank you for the contribution. The automatic checks found nothing to report. The maintainers will "
+                    "review it and decide what happens next.")
+
+
+def without_judgement(value):
+    """Drop every sentence that states or implies a verdict on the pull request; "" when nothing is left."""
+    sentences = SENTENCE_END.split(" ".join(str(value or "").split()))
+    return " ".join(sentence for sentence in sentences if not JUDGEMENT.search(sentence))
+
+
 def text_of(value, limit):
-    return safe_prose(" ".join(str(value or "").split())[:limit])
+    return safe_prose(without_judgement(value)[:limit])
 
 
 BLOCKING_CALL = re.compile(r"(?<![\w.])(wait|wait_ms|wait_us|sleep|usleep|delay|delay_ms|HAL_Delay)\s*\(")
@@ -108,9 +130,9 @@ def render(answer):
     nice = [i for i in answer.get("nice_to_have", []) if isinstance(i, dict)][:6] if isinstance(answer.get("nice_to_have"), list) else []
     if not answer.get("opening") and not must and not nice:
         return None
-    parts = []
-    if answer.get("opening"):
-        parts.append("💌 " + text_of(answer["opening"], 500))
+    must = [i for i in must if not JUDGEMENT.search(str(i.get("title") or ""))]
+    nice = [i for i in nice if not JUDGEMENT.search(str(i.get("title") or ""))]
+    parts = ["💌 " + (text_of(answer.get("opening"), 500) or NEUTRAL_OPENING)]
     if must:
         parts.append("### 🔧 What needs to change\n\n" + "\n\n".join(f"{n}. " + render_item(i).replace("\n", "\n   ")
                                                                  for n, i in enumerate(must, 1)))
@@ -118,9 +140,8 @@ def render(answer):
         parts.append("### 🌱 Nice to have\n\n" + "\n\n".join(f"- " + render_item(i).replace("\n", "\n  ") for i in nice))
     if must or nice:
         parts.append(NOTE)
-    if answer.get("closing"):
-        parts.append("🙏 " + text_of(answer["closing"], 400))
-    return "\n\n".join(parts), ("needs-changes" if must else "ready")
+    parts.append("🙏 " + (text_of(answer.get("closing"), 400) or NEUTRAL_CLOSING))
+    return "\n\n".join(parts), ("changes suggested" if must else "no changes suggested")
 
 
 def main():
@@ -141,8 +162,7 @@ def main():
     results = load_results(args.results)
     title = "Message to the contributor"
     if not needs_attention(results):
-        body, status, summary = ("🎉 Every check passed. Thank you very much for the contribution, there is nothing "
-                                 "you need to change.", "pass", "nothing to change")
+        body, status, summary = "💌 " + NEUTRAL_ALL_PASS, "pass", "nothing to report"
     elif args.no_model:
         body, status, summary = "", "skipped", "no model asked"
     else:

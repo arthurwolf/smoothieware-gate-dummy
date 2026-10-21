@@ -64,17 +64,18 @@ class SizeTests(unittest.TestCase):
             "top_symbol_changes": [{"symbol": "$t", "delta": 5}, {"symbol": "foo()", "delta": 5}, {"symbol": "bar", "delta": -2}]}
 
     def test_table_hides_mapping_symbols_and_shrinkage(self):
-        text = size.table("Release", self.DATA)
+        text = size.table("Release", self.DATA, "size-release")
         self.assertIn('<td align="right"><b>+5</b></td>', text)
         self.assertIn("<code>foo()</code> +5 B", text)
         self.assertNotIn("$t", text)
         self.assertNotIn("bar", text)
 
-    def test_table_is_full_width_and_has_square_bars_with_legend(self):
-        text = size.table("Release", self.DATA)
+    def test_table_is_full_width_and_has_chart_placeholder_not_emoji_squares(self):
+        text = size.table("Release", self.DATA, "size-release")
         self.assertIn('<table width="100%">', text)
-        self.assertIn("🟧", text)
-        self.assertIn("used before and after", text)
+        self.assertIn("<!--chart:size-release-->", text)
+        for square in "🟦🟧🟩⬛":
+            self.assertNotIn(square, text)
 
     def test_default_warning_limits_are_strict(self):
         defaults = {a.dest: a.default for a in size.argparse.ArgumentParser()._actions}  # noqa: F841
