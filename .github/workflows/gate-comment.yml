@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 30
     permissions:
       actions: read
-      contents: read
+      contents: write
       pull-requests: write
     env:
       GH_TOKEN: ${{ github.token }}
@@ -82,9 +82,30 @@ jobs:
           python3 -I gate/scripts/guidance.py --results results --diff pr.diff --pr-text pr-text.txt \
             --out results/guidance --prompts gate/prompts || true
 
+      - name: Draw the size charts and publish them on the gate-images branch
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          # Images are drawn from numbers only, then pushed to an orphan branch; the comment links to that folder.
+          python3 -I gate/scripts/charts.py --results results --out charts || true
+          if [ -f charts/charts.json ]; then
+            folder="pr-$PR_NUMBER/run-$RUN_ID"
+            git clone --quiet --depth 1 --branch gate-images "https://x-access-token:${GH_TOKEN}@github.com/$REPO.git" images 2>/dev/null \
+              || { git init --quiet images && git -C images checkout --quiet --orphan gate-images; }
+            mkdir -p "images/$folder" && cp charts/*.svg "images/$folder/"
+            git -C images add -A
+            git -C images -c user.name=smoothie-gate -c user.email=smoothie-gate@users.noreply.github.com \
+              commit --quiet -m "Charts for pull request $PR_NUMBER, run $RUN_ID"
+            git -C images remote get-url origin >/dev/null 2>&1 || git -C images remote add origin "https://x-access-token:${GH_TOKEN}@github.com/$REPO.git"
+            git -C images push --quiet origin HEAD:gate-images \
+              || { git -C images pull --quiet --rebase origin gate-images && git -C images push --quiet origin HEAD:gate-images; } \
+              && echo "image_base=https://github.com/$REPO/raw/gate-images/$folder" >> "$GITHUB_ENV" || true
+          fi
+
       - name: Write the report
         run: |
           python3 -I gate/scripts/report.py --results results --out report \
+            --charts charts/charts.json --image-base "${image_base:-}" \
             --run-url "$GITHUB_SERVER_URL/$REPO/actions/runs/$RUN_ID" || true
           cat report/summary.md >> "$GITHUB_STEP_SUMMARY"
 
