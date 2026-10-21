@@ -41,9 +41,13 @@ Strict count: 6 of 8 under the expected rule. All 8 were flagged for the problem
 Merged PRs (15): 3 had no finding. 12 had findings, 32 in total. By kind:
 
 - `pr-description` (missing wiki link or stated tests), `formatting`, `scope` and `header-code` findings follow written rules and can be checked from the diff text. Merged PRs do break these rules, so they are true by the rule but not blocking in practice. They are advice only.
-- 14 findings are code concerns (units, overflow, ISR sharing, idle starvation). I checked none of them against the full source. Counts: not confirmed, not refuted. PR 1455 (`M48` probe loop without idle calls) matches the maintainer's idle-starvation rule.
+- 14 findings are code concerns. Hand check (2026-10-21) against current Smoothieware `edge` source, where the code is still present:
+  - Confirmed real: PR 1433 `ST7565.cpp` reads `LCDWIDTH_SH1106` bytes per page from a buffer indexed with stride `LCDWIDTH` (line 214 on edge is unchanged), so SH1106 pages overlap; PR 1455 `M48` runs its probe loop without yielding to idle (matches the maintainer's idle-starvation rule).
+  - False positive: PR 1464 `debounce_ms` "not defined": it is a member declared in `Endstops.h:49` and read from config at `Endstops.cpp:380`; the model could not see it because only the diff was sent.
+  - Plausible but not decidable from source: PR 1436 `G4 P` units (the two branches send `sticky_p*1000` and `sticky_p`; edge still has both, so one is intentional per mode), PR 1444 `steps <= 0` direction (still on edge, so intended), PR 1455 `Delta` with n<=0, PR 1518 inch mode restore, PR 1464 ISR/main loop sharing, PR 1485 jog and controlled stop (needs a hardware test), PR 1444 M206/M306 parameter change (a deliberate feature change), PR 1405 unused parameter (trivial).
+  - Result: of 14, 2 confirmed, 1 false, 11 not decidable without running the code. Precision is therefore unproven; the review stays advice. The false positive shows why findings are warnings and why context outside the diff matters.
 
-No finding on a merged PR is a verified false positive, and none is a verified true positive. The review therefore cannot be called precise yet; it is a source of questions for a human reviewer.
+Only 3 of the 14 code concerns could be decided (2 true, 1 false). The review cannot be called precise; it is a source of questions for a human reviewer.
 
 ## Tuning
 

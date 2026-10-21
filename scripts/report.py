@@ -23,6 +23,13 @@ ICON = {"pass": "✅", "warn": "⚠️", "fail": "❌", "skipped": "⏭️", "er
 MAX_DETAILS = 6000
 
 
+def overall_status(results, problems):
+    """A skipped check (for example a model outage) must not hide that the other checks passed."""
+    statuses = [r["status"] for r in results] + (["error"] if problems else [])
+    ran = [status for status in statuses if status != "skipped"]
+    return worst_status(ran or statuses)
+
+
 def load_results(results_dir):
     """Return (valid results, problems). Duplicated stage names are kept: build runs per build type."""
     results, problems = [], []
@@ -52,7 +59,7 @@ def fence_safe(text):
 
 
 def render_comment(results, problems, run_url):
-    overall = worst_status([r["status"] for r in results] + (["error"] if problems else []))
+    overall = overall_status(results, problems)
     lines = [MARKER, f"## smoothie-gate {ICON[overall]} {overall}", ""]
     if not results and not problems:
         lines.append("No stage produced a result.")
@@ -92,7 +99,7 @@ def main():
                        ("report.html", render_html(comment))):
         with open(os.path.join(args.out, name), "w") as handle:
             handle.write(text)
-    overall = worst_status([r["status"] for r in results] + (["error"] if problems else []))
+    overall = overall_status(results, problems)
     print(json.dumps({"type": "result", "status": overall, "stages": len(results), "invalid": len(problems),
                       "comment": os.path.join(args.out, "comment.md")}))
     return 1 if overall == "fail" else 0

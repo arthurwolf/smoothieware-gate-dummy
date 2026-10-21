@@ -18,6 +18,11 @@ def write(folder, name, **fields):
 
 
 class ReportTest(unittest.TestCase):
+    def test_skipped_check_does_not_hide_passes(self):
+        self.assertEqual(report.overall_status([{"status": "pass"}, {"status": "skipped"}], []), "pass")
+        self.assertEqual(report.overall_status([{"status": "skipped"}], []), "skipped")
+        self.assertEqual(report.overall_status([{"status": "fail"}, {"status": "skipped"}], []), "fail")
+
     def test_comment_has_marker_and_worst_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             write(tmp, "a.result.json")

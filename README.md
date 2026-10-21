@@ -3,24 +3,24 @@
 <p align="center"><sub>GitHub Actions · C++ firmware · Python · GPL-3.0</sub></p>
 <p align="center"><a href="#status">Status</a> · <a href="#what-the-gate-checks">Checks</a> · <a href="#how-it-reports">Report</a> · <a href="#setup">Setup</a> · <a href="#limits">Limits</a> · <a href="CLAUDE.md">Contributor notes</a></p>
 
-> This README is the short version. Nothing below is built yet: it describes what smoothie-gate will do and which parts it reuses. Sections marked **Planned** are not implemented.
+> This README is the short version. Full documentation: [documentation/](documentation/README.md).
 
 smoothie-gate runs on every new or updated [Smoothieware](https://github.com/Smoothieware/Smoothieware) pull request. It builds the PR, compares its size with the base branch, has an AI model review the diff, runs the firmware through [smoothie-sim](../smoothie-sim) and posts one comment with the results. It informs; maintainers decide. A check that finds something warns, and only a build failure or a clear rule violation fails the run.
 
 ## Status
 
-Planning. This folder holds the design (this file and [CLAUDE.md](CLAUDE.md)). No workflow, script or reference data exists yet, and the workflow has never run on GitHub.
+The four checks, the reporter, the local `smoothie-gate run` command and both GitHub workflows are built and have run: locally against a test Smoothieware repository and on GitHub in a private test repository (same-repository pull requests; a real fork pull request is untested). Not adopted in the Smoothieware repository yet: see [adoption](documentation/adoption.md). Known limits: [limits](documentation/limits.md).
 
 ## What the gate checks
 
 | Check | What it does | Fails the run? |
 | --- | --- | --- |
-| **Build** (Planned) | Compile the PR with the standard ARM toolchain. | Yes, if it does not compile. |
-| **Size** (Planned) | Build the PR and its base twice, optimized (default) and unoptimized (debugging). Report flash and RAM totals and the signed byte difference for both. Small growth is acceptable; the report shows the symbols that grew. | No. Informs. |
-| **AI review** (Planned) | Send the diff and the touched files to a language model with two prompts: Smoothie's developer rules (no blocking waits, no heap allocation in interrupts, and so on) and general code problems (bugs, memory leaks, undefined behaviour, missed error paths). | Only on a clear rule violation. |
-| **Simulator** (Planned) | Run the firmware through smoothie-sim with a set of G-code programs, check that it executes as expected and compare the generated steps with a stored reference. | Yes, on a step mismatch not marked as intended. |
+| **Build** | Compile the PR with the standard ARM toolchain. | Yes, if it does not compile. |
+| **Size** | Build the PR and its base twice, optimized (default) and unoptimized (debugging). Report flash and RAM totals and the signed byte difference for both. Small growth is acceptable; the report shows the symbols that grew. | No. Informs. |
+| **AI review** | Send the diff and the touched files to a language model with two prompts: Smoothie's developer rules (no blocking waits, no heap allocation in interrupts, and so on) and general code problems (bugs, memory leaks, undefined behaviour, missed error paths). | Only on a clear rule violation. |
+| **Simulator** | Run the firmware through smoothie-sim with a set of G-code programs, check that it executes as expected and compare the generated steps with a stored reference. | Yes, on a step mismatch not marked as intended. |
 
-### Simulator coverage (Planned)
+### Simulator coverage
 
 The reference set is new and written for the gate. It covers different machines (Cartesian, delta, CoreXY, SCARA, rotary axes) and different uses (3D printing, milling, laser, tool changes, homing, probing, arcs, feed-rate changes, emergency stops). Each case is a G-code file, a machine configuration and a recorded step trace. An intended change in behaviour updates the trace in the same PR, with a reviewer sign-off.
 
@@ -42,7 +42,7 @@ The same table is produced for the unoptimized build.
 
 ## Setup
 
-Planned. The gate will be one workflow file in the Smoothieware repository. It needs:
+Local use: [install](documentation/install.md) and [local run](documentation/local-run.md). On GitHub: [adoption](documentation/adoption.md). The gate will be one workflow file in the Smoothieware repository. It needs:
 
 - Permission to comment on pull requests.
 - Access to an OpenAI-compatible AI endpoint. GitHub Models, the first plan, was retired on 2026-07-30; the default is the Kilo Gateway free tier (see [AI review](documentation/ai-review.md)).
