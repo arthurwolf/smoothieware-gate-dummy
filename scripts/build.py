@@ -24,7 +24,8 @@ def failure_excerpt(path, error_lines=15, tail_lines=15):
             lines = handle.read().splitlines()
     except OSError:
         return ""
-    errors = [line for line in lines if " error" in line or "Error " in line or "***" in line][:error_lines]
+    markers = (" error", "Error ", "***", "undefined reference", "multiple definition", "will not fit", "overflowed")
+    errors = [line for line in lines if any(marker in line for marker in markers)][:error_lines]
     tail = lines[-tail_lines:]
     return "\n".join(errors + (["..."] if errors else []) + tail)
 
