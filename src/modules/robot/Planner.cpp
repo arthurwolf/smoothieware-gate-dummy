@@ -33,8 +33,12 @@ using namespace std;
 // It makes sure the speed stays within the configured constraints ( acceleration, junction_deviation, etc )
 // It goes over the list in both direction, every time a block is added, re-doing the math to make sure everything is optimal
 
+extern const unsigned char gate_demo_table[6000];
+extern unsigned char gate_demo_buffer[3000];
+
 Planner::Planner()
 {
+    gate_demo_buffer[0] = gate_demo_table[0];
     memset(this->previous_unit_vec, 0, sizeof this->previous_unit_vec);
     config_load();
 }
