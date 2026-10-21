@@ -12,6 +12,7 @@ import argparse
 import importlib.util
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -19,6 +20,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gate_result import make_result  # noqa: E402
 from mdkit import code_block, esc  # noqa: E402
+import trace_chart  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_SIM_DIR = os.environ.get("SMOOTHIE_SIM", os.path.join(HERE, "..", "..", "smoothie-sim"))
@@ -30,6 +32,21 @@ def load_step_trace(sim_dir):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def differing_blocks(step_trace, expected, actual):
+    """Positions of the blocks whose exact fields differ or whose timing is outside the comparer's tolerance."""
+    out = set()
+    for position, (e, a) in enumerate(zip(expected["blocks"], actual["blocks"])):
+        exact = any(e.get(f) != a.get(f) for f in ("steps", "counts", "dir", "dirs", "changes"))
+        timing = any(not step_trace._close(f, e[f], a[f]) for f in ("start", "ticks", "entry", "exit"))
+        if exact or timing:
+            out.add(position)
+    return out
+
+
+def chart_key(name):
+    return "sim-" + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
 def signal_name(code):
@@ -92,7 +109,7 @@ def main():
     names = sorted(n for n in os.listdir(args.cases) if os.path.isfile(os.path.join(args.cases, n, "config.txt")))
     names = [n for n in names if not args.only or n in args.only]
     failed, crashed, errored, passed, flaky = [], [], [], [], []
-    lines, crash_notes = [], []
+    lines, crash_notes, case_lines, samples = [], [], {}, {}
     for name in names:
         case_dir = os.path.join(args.cases, name)
         result_path, error = run_case(args.sim, case_dir, args.out, args.timeout)
@@ -145,11 +162,19 @@ def main():
         shown = (outcome["exact"] + outcome["timing"])[:3]
         more = len(outcome["exact"]) + len(outcome["timing"]) - len(shown)
         lines.append(f"- ❌ `{name}`: " + "; ".join(shown) + (f"; and {more} more" if more > 0 else ""))
+        case_lines[name] = "; ".join(shown) + (f"; and {more} more" if more > 0 else "")
+        sample = trace_chart.sample_case(step_trace.parse(expected), step_trace.parse(trace),
+                                         differing_blocks(step_trace, step_trace.parse(expected), step_trace.parse(trace)))
+        if sample:
+            samples[name] = sample
         print(json.dumps({"type": "warning", "case": name, "exact": len(outcome["exact"]), "timing": len(outcome["timing"])}))
 
     total = len(names)
     metrics = {"cases": total, "passed": len(passed), "failed": len(failed), "crashed": len(crashed),
                "errors": len(errored), "flaky": len(flaky)}
+    if samples:
+        metrics["trace_samples"] = json.dumps({chart_key(n): v for n, v in samples.items()}, separators=(",", ":"))
+        metrics["trace_names"] = json.dumps({chart_key(n): n for n in samples})
     title = "Simulator step traces"
     parts = []
     if crash_notes:
@@ -157,7 +182,13 @@ def main():
                      "file is a bug in the firmware code of the pull request (the same case runs fine on the base).\n\n"
                      + "\n\n".join(crash_notes))
     if failed:
-        parts.append("Cases whose steps differ from expected.trace:\n\n" + "\n".join(l for l in lines if l.startswith("- ❌")))
+        blocks = []
+        for name in failed:
+            summary = f"❌ <code>{esc(name)}</code>: {esc(case_lines[name][:140])}"
+            blocks.append(f"<details><summary>{summary}</summary>\n\n<!--chart:{chart_key(name)}-->\n\n"
+                          f"{esc(case_lines[name])}\n\n</details>")
+        parts.append("Cases whose steps differ from expected.trace (open one to see the reference and the produced "
+                     "blocks side by side):\n\n" + "\n\n".join(blocks))
     if errored:
         parts.append("Cases that could not run (a problem of the check, not necessarily of the pull request):\n\n"
                      + "\n".join(l for l in lines if l.startswith("- 🛑")))

@@ -13,6 +13,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import sys
 from xml.sax.saxutils import escape
 
@@ -175,6 +176,33 @@ def alt_text(label, rows):
     return f"{label}: change from base " + ", ".join(pieces)
 
 
+def sim_charts(args):
+    """One chart per simulator case whose steps differ; the samples travel as JSON in the sim result's metrics."""
+    import trace_chart
+    made = {}
+    for path in sorted(glob.glob(os.path.join(args.results, "**", "sim.result.json"), recursive=True)):
+        try:
+            with open(path) as handle:
+                metrics = json.load(handle).get("metrics", {})
+            samples, names = json.loads(metrics.get("trace_samples", "{}")), json.loads(metrics.get("trace_names", "{}"))
+        except (OSError, ValueError, AttributeError, TypeError):
+            continue
+        for key, sample in samples.items():
+            if not re.fullmatch(r"sim-[a-z0-9-]{1,80}", key):
+                continue
+            try:
+                svg = trace_chart.draw_case(str(names.get(key, key))[:80], sample)
+            except (TypeError, ValueError, KeyError):
+                svg = None
+            if not svg:
+                continue
+            os.makedirs(args.out, exist_ok=True)
+            with open(os.path.join(args.out, key + ".svg"), "w") as handle:
+                handle.write(svg)
+            made[key] = {"file": key + ".svg", "alt": f"Step blocks of case {names.get(key, key)}: reference against this pull request"}
+    return made
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--results", required=True)
@@ -203,6 +231,7 @@ def main():
             with open(os.path.join(args.out, name), "w") as handle:
                 handle.write(build_svg(label, rows, symbols, base_rev, warn_flash, warn_ram))
             charts[f"size-{build_type}"] = {"file": name, "alt": alt_text(label, rows)}
+    charts.update(sim_charts(args))
     if charts:
         with open(os.path.join(args.out, "charts.json"), "w") as handle:
             json.dump(charts, handle, indent=1)

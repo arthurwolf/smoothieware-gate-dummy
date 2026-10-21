@@ -74,7 +74,7 @@ def place_charts(text, charts, image_base):
             return ""
         return (f'<img src="{html.escape(image_base.rstrip("/") + "/" + chart["file"], quote=True)}" '
                 f'alt="{html.escape(chart["alt"], quote=True)}" width="760">')
-    return re.sub(r"<!--chart:([a-z-]+)-->", swap, text)
+    return re.sub(r"<!--chart:([a-z0-9-]+)-->", swap, text)
 
 
 def render_comment(results, problems, run_url, charts=None, image_base=""):

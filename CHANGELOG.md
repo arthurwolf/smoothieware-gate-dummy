@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- Simulator section: every case whose steps differ is an expandable item with a chart of the reference blocks against this pull request's blocks (time lanes plus steps per axis), sampled to at most three windows of four blocks (first, worst, last difference) so many mismatches stay readable (`scripts/trace_chart.py`).
 - Size section shows real chart images (dark SVG, drawn by `scripts/charts.py`, published on the `gate-images` branch by the comment workflow): memory used with legend, change against the warning limit, symbols that grew most.
 
 ### Changed
