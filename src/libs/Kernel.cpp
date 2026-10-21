@@ -6,7 +6,7 @@
 */
 
 // Demo lookup table, deliberately large to show the size report
-const unsigned char gate_demo_table[3000] __attribute__((used)) = {1, 2, 3, 4, 5};
+extern const unsigned char gate_demo_table[3000] __attribute__((used)) = {1, 2, 3, 4, 5};
 unsigned char gate_demo_buffer[200] __attribute__((used));
 #include "libs/Kernel.h"
 #include "libs/Module.h"
