@@ -96,9 +96,12 @@ jobs:
         continue-on-error: true
         run: |
           make -C sim -j"$(nproc)" COVERAGE=0 SMOOTHIE_SRC="$PWD/pr" BUILD="$PWD/simbuild" "$PWD/simbuild/smoothie-sim"
+          # The base firmware's simulator draws the reference side of the step charts; the verdict still comes from
+          # the stored expected.trace. If this build fails the charts fall back to planner blocks only.
+          make -C sim -j"$(nproc)" COVERAGE=0 SMOOTHIE_SRC="$PWD/base" BUILD="$PWD/simbuild-base" "$PWD/simbuild-base/smoothie-sim" || true
           mkdir -p results/sim
           python3 -I gate/scripts/sim_stage.py --sim "$PWD/simbuild/smoothie-sim" --cases gate/cases \
-            --out results/sim --sim-dir "$PWD/sim"
+            --out results/sim --sim-dir "$PWD/sim" --base-sim "$PWD/simbuild-base/smoothie-sim"
 
       - name: Upload the result files (data only, no binaries)
         if: always()
@@ -108,5 +111,5 @@ jobs:
           path: |
             results/pr.json
             results/**/*.result.json
+            results/sim/trace-samples.json
           if-no-files-found: error
-# reindex
