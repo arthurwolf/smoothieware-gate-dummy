@@ -9,6 +9,8 @@
 - A simulator crash is a failure (signal named, one retry), no longer a generic error.
 
 ### Added
+- Simulator stage reliability: a mismatch is confirmed by a second run (a run that matches on retry is reported as flaky with status warn, two different wrong runs as a check error, never as a failure of the pull request); each case runs in its own working directory without stdin; a missing simulator binary gives a clear error.
+- Contributor message: when the pull request adds a blocking call, a removal diff built from its own lines is always included, even if the model gives no code.
 - `scripts/guidance.py`, `prompts/guidance.md`: a polite closing message that tells the contributor what to change, with short suggested code or diffs and a note that they may be naive. Advice only, never changes the status.
 - `scripts/mdkit.py`: shared Markdown helpers (dynamic code fences, fence-aware clipping, mention defusing, square bars).
 

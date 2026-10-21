@@ -76,6 +76,28 @@ class GuidanceTests(unittest.TestCase):
         self.assertEqual(client.complete.call_count, 2)
         self.assertIn("```diff", data["details"])
 
+    def test_blocking_removal_sketch_comes_from_the_diff(self):
+        diff = "+++ b/src/A.cpp\n@@ -1 +1,2 @@\n+    wait(0.01F);\n+    int x = 1;\n+    sleep(1);\n"
+        sketch = guidance.blocking_removal_sketch(diff)
+        self.assertIn("-    wait(0.01F);", sketch)
+        self.assertIn("-    sleep(1);", sketch)
+        self.assertNotIn("int x", sketch)
+        self.assertEqual(guidance.blocking_removal_sketch("+++ b/a\n+    await(1);\n"), "")
+
+    def test_sketch_is_added_when_the_model_gave_no_code(self):
+        bare = dict(ANSWER, must_fix=[dict(ANSWER["must_fix"][0], code="")])
+        root = tempfile.mkdtemp(dir=os.environ.get("TMPDIR"))
+        write_results(root, "fail")
+        open(os.path.join(root, "d.diff"), "w").write("+++ b/src/A.cpp\n@@ -1 +1 @@\n+    wait(1);\n")
+        argv = ["guidance.py", "--results", root, "--diff", os.path.join(root, "d.diff"), "--out", root]
+        client = mock.Mock()
+        client.complete.return_value = (json.dumps(bare), "m")
+        with mock.patch.object(guidance, "ModelClient", return_value=client), mock.patch.object(sys, "argv", argv):
+            guidance.main()
+        data = json.load(open(os.path.join(root, "guidance.result.json")))
+        self.assertIn("```diff", data["details"])
+        self.assertIn("-    wait(1);", data["details"])
+
     def test_model_outage_is_skipped(self):
         data, _ = self.run_main("fail")
         self.assertEqual(data["status"], "skipped")

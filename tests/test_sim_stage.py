@@ -10,6 +10,14 @@ SIM_DIR = os.environ.get("SMOOTHIE_SIM", os.path.join(ROOT, "..", "smoothie-sim"
 step_trace = sim_stage.load_step_trace(SIM_DIR)
 
 
+def fake_binary():
+    """An executable file standing in for the simulator, so the stage's binary check passes while run_case is mocked."""
+    path = os.path.join(tempfile.mkdtemp(dir=os.environ.get("TMPDIR")), "sim")
+    open(path, "w").write("#!/bin/sh\n")
+    os.chmod(path, 0o755)
+    return path
+
+
 def result(steps=800, ticks=20000, entry=0.0, exit_speed=19.03):
     return {"n_actuators": 3, "steps_per_mm": [80, 80, 400], "final_steps": [steps, 0, 0],
             "blocks": [{"index": 0, "gcode_line": 3, "steps": [steps, 0, 0], "step_counts": [steps, 0, 0],
@@ -55,11 +63,11 @@ class StageTests(unittest.TestCase):
         out = os.path.join(root, "out")
         os.makedirs(out)
 
-        def fake_run(sim, case_dir, out_dir, timeout):
+        def fake_run(sim, case_dir, out_dir, timeout, attempts=2):
             path = os.path.join(out_dir, "one.json")
             json.dump(result(), open(path, "w"))
             return path, None
-        argv = ["sim_stage.py", "--sim", "x", "--cases", os.path.join(root, "cases"), "--out", out, "--sim-dir", SIM_DIR]
+        argv = ["sim_stage.py", "--sim", fake_binary(), "--cases", os.path.join(root, "cases"), "--out", out, "--sim-dir", SIM_DIR]
         with mock.patch.object(sim_stage, "run_case", fake_run), mock.patch.object(sys, "argv", argv):
             code = sim_stage.main()
         return code, json.load(open(os.path.join(out, "sim.result.json")))
@@ -77,6 +85,53 @@ class StageTests(unittest.TestCase):
     def test_missing_reference_is_error(self):
         _, data = self.run_stage(None)
         self.assertEqual(data["status"], "error")
+
+
+class FlakyTests(unittest.TestCase):
+    def run_stage(self, runs):
+        """runs: the traces (as result dicts) the fake simulator returns on successive calls."""
+        root = tempfile.mkdtemp(dir=os.environ.get("TMPDIR"))
+        case = os.path.join(root, "cases", "one")
+        os.makedirs(case)
+        for name, text in (("config.txt", ""), ("input.gcode", ""), ("meta.json", "{}")):
+            open(os.path.join(case, name), "w").write(text)
+        open(os.path.join(case, "expected.trace"), "w").write(step_trace.record(result()))
+        out = os.path.join(root, "out")
+        os.makedirs(out)
+        sim = os.path.join(root, "sim")
+        open(sim, "w").write("#!/bin/sh\n")
+        os.chmod(sim, 0o755)
+        calls = iter(runs)
+
+        def fake_run(sim_path, case_dir, out_dir, timeout, attempts=2):
+            path = os.path.join(out_dir, "one.json")
+            json.dump(next(calls), open(path, "w"))
+            return path, None
+        argv = ["sim_stage.py", "--sim", sim, "--cases", os.path.join(root, "cases"), "--out", out, "--sim-dir", SIM_DIR]
+        with mock.patch.object(sim_stage, "run_case", fake_run), mock.patch.object(sys, "argv", argv):
+            code = sim_stage.main()
+        return code, json.load(open(os.path.join(out, "sim.result.json")))
+
+    def test_mismatch_confirmed_by_second_run_fails(self):
+        _, data = self.run_stage([result(steps=801), result(steps=801)])
+        self.assertEqual(data["status"], "fail")
+
+    def test_one_off_wrong_run_is_flaky_not_a_failure(self):
+        code, data = self.run_stage([result(steps=801), result()])
+        self.assertEqual((code, data["status"]), (0, "warn"))
+        self.assertIn("second run", data["summary"])
+
+    def test_two_different_wrong_runs_are_an_error_of_the_check(self):
+        _, data = self.run_stage([result(steps=801), result(steps=802)])
+        self.assertEqual(data["status"], "error")
+        self.assertIn("non-deterministic", data["details"])
+
+    def test_missing_simulator_binary_is_a_clear_error(self):
+        out = tempfile.mkdtemp(dir=os.environ.get("TMPDIR"))
+        argv = ["sim_stage.py", "--sim", os.path.join(out, "nope"), "--cases", out, "--out", out, "--sim-dir", SIM_DIR]
+        with mock.patch.object(sys, "argv", argv):
+            self.assertEqual(sim_stage.main(), 1)
+        self.assertEqual(json.load(open(os.path.join(out, "sim.result.json")))["status"], "error")
 
 
 class CrashTests(unittest.TestCase):
@@ -112,7 +167,7 @@ class CrashTests(unittest.TestCase):
         root, case = self.make_case()
         out = os.path.join(root, "out")
         os.makedirs(out)
-        argv = ["sim_stage.py", "--sim", "x", "--cases", root, "--out", out, "--sim-dir", SIM_DIR]
+        argv = ["sim_stage.py", "--sim", fake_binary(), "--cases", root, "--out", out, "--sim-dir", SIM_DIR]
         with mock.patch.object(sim_stage, "run_case", return_value=(None, ("crash", "the simulator crashed with SIGSEGV"))), \
                 mock.patch.object(sys, "argv", argv):
             code = sim_stage.main()

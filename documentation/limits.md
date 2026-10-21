@@ -5,3 +5,11 @@
 - Only a pull request from the same repository was tested on GitHub; fork behaviour relies on GitHub's documented rules for `pull_request` (read-only token, no secrets).
 - The AI review gives advice and can be wrong or unavailable.
 - Local runs use ni-build; GitHub runs use plain `make` on a pinned gcc 4.8 2014q1.
+
+## Simulator reliability
+
+The simulator is deterministic, so a case that differs from its reference is run a second time. If the second run matches the reference, the case counts as passed and the stage says it was flaky (status warn). If the two runs differ from each other, the stage reports a check error, not a failure of the pull request. A crash (signal) or timeout is retried once; a crash that repeats is a failure of the pull request. Each case runs in its own working directory without stdin.
+
+## Suggested fixes
+
+The model writes the suggestions and may return none. For a blocking call the gate adds a removal diff from the pull request's own added lines, so that case never depends on the model. Other kinds of problem (build errors, leaks) depend on the model.

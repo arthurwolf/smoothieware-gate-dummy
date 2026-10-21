@@ -9,6 +9,7 @@ HTML, links, mentions or a code fence. The stage never fails and never changes t
 With nothing to fix it writes a thank-you without calling a model; an unreachable model gives status "skipped".
 """
 import argparse
+import re
 import glob
 import json
 import os
@@ -57,6 +58,27 @@ def build_messages(system_prompt, results, pr_text, diff_text):
 
 def text_of(value, limit):
     return safe_prose(" ".join(str(value or "").split())[:limit])
+
+
+BLOCKING_CALL = re.compile(r"(?<![\w.])(wait|wait_ms|wait_us|sleep|usleep|delay|delay_ms|HAL_Delay)\s*\(")
+
+
+def blocking_removal_sketch(diff_text):
+    """A removal diff built from the pull request's own added lines that call a blocking function. It does not depend
+    on the model, so a pull request with a blocking call always gets a concrete suggestion. Returns "" when none."""
+    sections, path, hunk_header = {}, None, None
+    for line in diff_text.splitlines():
+        if line.startswith("+++ "):
+            path = line[4:].strip()
+            path = path[2:] if path.startswith("b/") else path
+        elif line.startswith("@@"):
+            hunk_header = line
+        elif line.startswith("+") and not line.startswith("+++") and path and BLOCKING_CALL.search(line):
+            sections.setdefault(path, []).append(line)
+    out = []
+    for path, added in list(sections.items())[:3]:
+        out.append(f"--- a/{path}\n+++ b/{path}\n" + "\n".join("-" + a[1:] for a in added[:5]))
+    return "\n".join(out)
 
 
 def has_code(answer):
@@ -143,6 +165,11 @@ def main():
                 break
         if rendered:
             body, verdict = rendered
+            sketch = blocking_removal_sketch(diff_text)
+            if sketch and "```" not in body:
+                body += ("\n\n### 🧰 A starting point for the blocking call\n\nThe lines this pull request adds that block "
+                         "the main loop, shown as lines to remove (the replacement depends on what the delay was for):\n\n"
+                         + code_block(sketch, "diff"))
             status, summary = "pass", f"message written ({verdict})"
         else:
             body, status, summary = "", "skipped", "message unavailable: the model gave no usable answer"
