@@ -47,12 +47,13 @@ One line per distribution; each installs everything the build and the checks nee
 | Gentoo | `sudo emerge --ask sys-devel/gcc dev-build/make dev-lang/python dev-vcs/git net-misc/curl app-arch/tar app-misc/ca-certificates` |
 | NixOS, Nix on any OS | `nix-shell -p gcc gnumake python3 git curl gnutar cacert` |
 
-Optional, only for the RAM and flash comparison: Debian and Ubuntu `sudo apt-get install -y binutils-arm-none-eabi`, Fedora `sudo dnf install -y arm-none-eabi-binutils-cs`, Arch `sudo pacman -S --needed arm-none-eabi-binutils`, anywhere else the [Arm GNU Toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). Optional, only for the old-PR replay: the GitHub CLI `gh`.
+Optional, only for the RAM and flash comparison: Debian and Ubuntu `sudo apt-get install -y binutils-arm-none-eabi`, Fedora `sudo dnf install -y arm-none-eabi-binutils-cs`, Arch `sudo pacman -S --needed arm-none-eabi-binutils`, anywhere else the [Arm GNU Toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads). Optional, only for the old-PR replay (`tools/`): the GitHub CLI `gh` (logged in) and `patch`; Debian and Ubuntu `sudo apt-get install -y gh patch`, Fedora `sudo dnf install -y gh patch`, Arch `sudo pacman -S --needed github-cli patch`.
 
 Assumptions that are easy to miss:
 
 - **GCC, not Clang.** The build uses GCC-only flags and the coverage step runs `gcov --json-format`, which needs GCC 9 or newer and a `gcov` of the same version as `g++` (with several GCCs installed, set `CXX=g++-13` and put `gcov-13` first on `PATH`). The simulator is built as a native 64-bit binary; Linux is the only tested platform and macOS is not supported.
 - **GNU userland.** The scripts use `nproc`, `readlink -f`, `sha256sum` and GNU `find`, `sed` and `tar`; on BSD or macOS they fail.
+- **bash.** `run_checks.sh`, `tools/*.sh` and the `smoothie-sim` wrapper need bash (`#!/usr/bin/env bash`); minimal images such as Alpine do not ship it, which is why it is in the Alpine line above. Python 3 runs without extra packages, but the checkers were only tried with Python 3.11, so expect a recent one is needed.
 - **Network at first build.** `make` clones Smoothieware `edge` from GitHub into `fw/` unless you pass `SMOOTHIE_SRC=<tree>`; behind a proxy or offline, clone the firmware yourself first.
 
 ## See it in action
