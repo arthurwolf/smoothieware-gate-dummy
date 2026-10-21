@@ -16,8 +16,8 @@ concurrency:
 
 jobs:
   comment:
-    # Only pull request runs of gate-pr carry artifacts worth reporting.
-    if: github.event.workflow_run.event == 'pull_request'
+    # Only pull request runs of gate-pr carry artifacts worth reporting; a run cancelled by a newer push has none.
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion != 'cancelled'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
