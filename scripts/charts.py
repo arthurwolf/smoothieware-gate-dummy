@@ -17,6 +17,8 @@ import re
 import sys
 from xml.sax.saxutils import escape
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I drops the script folder
+
 CAPACITY = {"Flash": 512 * 1024, "RAM": 32 * 1024, "AHB RAM": 32 * 1024}  # LPC1768
 UNIT = {"Flash": "flash", "RAM": "RAM", "AHB RAM": "AHB RAM"}
 
