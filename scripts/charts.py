@@ -179,29 +179,33 @@ def alt_text(label, rows):
 
 
 def sim_charts(args):
-    """One chart per simulator case whose steps differ; the samples travel as JSON in the sim result's metrics."""
+    """One chart per simulator case whose steps differ; the samples sit in trace-samples.json beside sim.result.json."""
     import trace_chart
     made = {}
-    for path in sorted(glob.glob(os.path.join(args.results, "**", "sim.result.json"), recursive=True)):
+    for path in sorted(glob.glob(os.path.join(args.results, "**", "trace-samples.json"), recursive=True)):
         try:
-            with open(path) as handle:
-                metrics = json.load(handle).get("metrics", {})
-            samples, names = json.loads(metrics.get("trace_samples", "{}")), json.loads(metrics.get("trace_names", "{}"))
-        except (OSError, ValueError, AttributeError, TypeError):
-            continue
-        for key, sample in samples.items():
-            if not re.fullmatch(r"sim-[a-z0-9-]{1,80}", key):
+            if os.path.getsize(path) > 8 * 1024 * 1024:
                 continue
+            with open(path) as handle:
+                entries = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        if not isinstance(entries, dict):
+            continue
+        for key, entry in list(entries.items())[:32]:
+            if not re.fullmatch(r"sim-[a-z0-9-]{1,80}", key) or not isinstance(entry, dict):
+                continue
+            name = str(entry.get("name", key))[:80]
             try:
-                svg = trace_chart.draw_case(str(names.get(key, key))[:80], sample)
-            except (TypeError, ValueError, KeyError):
+                svg = trace_chart.draw_case(name, entry.get("sample"))
+            except (TypeError, ValueError, KeyError, IndexError):
                 svg = None
             if not svg:
                 continue
             os.makedirs(args.out, exist_ok=True)
             with open(os.path.join(args.out, key + ".svg"), "w") as handle:
                 handle.write(svg)
-            made[key] = {"file": key + ".svg", "alt": f"Step blocks of case {names.get(key, key)}: reference against this pull request"}
+            made[key] = {"file": key + ".svg", "alt": f"Step comparison of case {name}: reference against this pull request"}
     return made
 
 

@@ -20,6 +20,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from gate_result import make_result  # noqa: E402
 from mdkit import code_block, esc  # noqa: E402
+import pulse_data  # noqa: E402
 import trace_chart  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -59,16 +60,16 @@ def signal_name(code):
     return f"{name} ({signal.strsignal(number).lower()})"
 
 
-def run_case(sim, case_dir, out_dir, timeout, attempts=2):
+def run_case(sim, case_dir, out_dir, timeout, attempts=2, extra=(), tag=""):
     """Run one case; return (result path or None, problem or None). A problem is (kind, text), kind being
     "crash" (the simulator died on a signal: the change under test crashes the firmware code), "timeout" or "error".
     A crash or timeout is retried once so a one-off hiccup of the runner is not blamed on the pull request."""
     sim, case_dir, out_dir = os.path.abspath(sim), os.path.abspath(case_dir), os.path.abspath(out_dir)  # the run changes directory
     with open(os.path.join(case_dir, "meta.json")) as handle:
         sim_args = json.load(handle).get("sim_args", [])
-    result_path = os.path.join(out_dir, os.path.basename(case_dir) + ".json")
+    result_path = os.path.join(out_dir, os.path.basename(case_dir) + tag + ".json")
     command = [sim, "--config", os.path.join(case_dir, "config.txt"), "--gcode", os.path.join(case_dir, "input.gcode"),
-               "--out", result_path] + sim_args
+               "--out", result_path] + sim_args + list(extra)
     problem = None
     for _ in range(attempts):
         try:
@@ -87,12 +88,38 @@ def run_case(sim, case_dir, out_dir, timeout, attempts=2):
     return None, problem
 
 
+def pulse_view(args, step_trace, case_dir, name, expected):
+    """(pulse data, None) or (None, reason). The reference pulses come from the base firmware's own simulator run, and
+    only when that run still reproduces expected.trace: a chart must never label something "reference" that is not."""
+    if not args.base_sim:
+        return None, "no simulator of the base firmware was provided"
+    if not os.access(args.base_sim, os.X_OK):
+        return None, "the simulator of the base firmware could not be built"
+    base_dir = os.path.join(args.out, "base")
+    os.makedirs(base_dir, exist_ok=True)
+    base_path, base_error = run_case(args.base_sim, case_dir, base_dir, args.timeout, attempts=1, extra=["--full-steps"])
+    pr_path, pr_error = run_case(args.sim, case_dir, args.out, args.timeout, attempts=1, extra=["--full-steps"], tag=".full")
+    if not base_path or not pr_path:
+        return None, "the base or the pull request simulator failed to rerun the case with full step lists"
+    try:
+        with open(base_path) as handle:
+            base = json.load(handle)
+        with open(pr_path) as handle:
+            pr = json.load(handle)
+        if step_trace.compare(expected, step_trace.record(base))["status"] != "pass":
+            return None, "the base firmware does not reproduce expected.trace itself, so it cannot stand for the reference"
+        return pulse_data.build(base, pr)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        return None, f"the step lists could not be read ({type(error).__name__})"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--sim", required=True, help="smoothie-sim binary built from the firmware under test")
     parser.add_argument("--cases", required=True)
     parser.add_argument("--out", required=True, help="existing folder for this run's traces and the result")
     parser.add_argument("--sim-dir", default=DEFAULT_SIM_DIR, help="smoothie-sim checkout (for checkers/step_trace.py)")
+    parser.add_argument("--base-sim", help="smoothie-sim binary built from the base firmware; its pulses draw the reference side of the charts")
     parser.add_argument("--record", action="store_true", help="write expected.trace instead of comparing")
     parser.add_argument("--only", action="append", default=[], help="run only this case (repeatable)")
     parser.add_argument("--timeout", type=int, default=300)
@@ -163,8 +190,10 @@ def main():
         more = len(outcome["exact"]) + len(outcome["timing"]) - len(shown)
         lines.append(f"- ❌ `{name}`: " + "; ".join(shown) + (f"; and {more} more" if more > 0 else ""))
         case_lines[name] = "; ".join(shown) + (f"; and {more} more" if more > 0 else "")
+        pulses, reason = pulse_view(args, step_trace, case_dir, name, expected)
         sample = trace_chart.sample_case(step_trace.parse(expected), step_trace.parse(trace),
-                                         differing_blocks(step_trace, step_trace.parse(expected), step_trace.parse(trace)))
+                                         differing_blocks(step_trace, step_trace.parse(expected), step_trace.parse(trace)),
+                                         pulses, reason)
         if sample:
             samples[name] = sample
         print(json.dumps({"type": "warning", "case": name, "exact": len(outcome["exact"]), "timing": len(outcome["timing"])}))
@@ -173,8 +202,8 @@ def main():
     metrics = {"cases": total, "passed": len(passed), "failed": len(failed), "crashed": len(crashed),
                "errors": len(errored), "flaky": len(flaky)}
     if samples:
-        metrics["trace_samples"] = json.dumps({chart_key(n): v for n, v in samples.items()}, separators=(",", ":"))
-        metrics["trace_names"] = json.dumps({chart_key(n): n for n in samples})
+        with open(os.path.join(args.out, "trace-samples.json"), "w") as handle:
+            json.dump({chart_key(n): {"name": n, "sample": v} for n, v in samples.items()}, handle, separators=(",", ":"))
     title = "Simulator step traces"
     parts = []
     if crash_notes:

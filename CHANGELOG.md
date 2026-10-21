@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### Added
-- Simulator section: every case whose steps differ is an expandable item with a chart of the reference blocks against this pull request's blocks (time lanes plus steps per axis), sampled to at most three windows of four blocks (first, worst, last difference) so many mismatches stay readable (`scripts/trace_chart.py`).
+- Simulator section: every case whose steps differ is an expandable item with one chart on a shared, labelled time axis: planner blocks, speed per motor (mm/s), position drift (steps the PR is ahead or behind), a zoomed logic-analyzer view of STEP and DIR lanes (reference above this pull request) with a circle on the first difference, a plain-language first-difference sentence, a numbers table and a legend (`scripts/trace_chart.py`, `scripts/pulse_data.py`). The reference pulses come from a simulator built from the base firmware (`--base-sim`), used only when it reproduces `expected.trace`; otherwise the chart falls back to planner blocks and says why.
 - Size section shows real chart images (dark SVG, drawn by `scripts/charts.py`, published on the `gate-images` branch by the comment workflow): memory used with legend, change against the warning limit, symbols that grew most.
 
 ### Changed

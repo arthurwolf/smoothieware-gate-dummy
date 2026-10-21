@@ -16,3 +16,7 @@ Under each size table a row of squares shows the chip: 🟦 used before and afte
 ## Message to the contributor
 
 At the bottom, an AI-written message thanks the contributor and lists what must change and what is nice to have, with short suggested code or diffs. The suggestions can be naive and are only general directions. It is advice: it never changes the overall status, and it is left out when the model is unavailable.
+
+## Step charts (simulator section)
+
+Each case with differing steps expands to one chart. All panels of the "Whole case" part share one time axis (ms from the start of the case). Blue is the reference (base firmware), orange is this pull request, red marks a difference. "Speed" is mm/s per motor, "Position drift" is the number of steps this PR is ahead (+) or behind (-). The zoom shows STEP pulses and the DIR level as a logic analyzer would, with a circle on the first pulse that moved; the yellow band in the top part shows where the zoom sits. The numbers table repeats the totals and the worst blocks.

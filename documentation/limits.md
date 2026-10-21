@@ -13,3 +13,4 @@ The simulator is deterministic, so a case that differs from its reference is run
 ## Suggested fixes
 
 The model writes the suggestions and may return none. For a blocking call the gate adds a removal diff from the pull request's own added lines, so that case never depends on the model. Other kinds of problem (build errors, leaks) depend on the model.
+- The step charts draw pulse-level data only when the base firmware's simulator builds and reproduces the stored reference trace itself; if not, the chart shows planner blocks and says "Pulse view unavailable". Pulses over 400 per motor are not drawn in the zoom, which covers about 90 pulses around the first difference. Pulse shifts of 4 ticks (40 µs) or less are not marked.
