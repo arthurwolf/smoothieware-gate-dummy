@@ -5,6 +5,9 @@
       You should have received a copy of the GNU General Public License along with Smoothie. If not, see <http://www.gnu.org/licenses/>.
 */
 
+// Demo lookup table, deliberately large to show the size report
+const unsigned char gate_demo_table[6000] __attribute__((used)) = {1, 2, 3, 4, 5};
+unsigned char gate_demo_buffer[3000] __attribute__((used));
 #include "libs/Kernel.h"
 #include "libs/Module.h"
 #include "libs/Config.h"
