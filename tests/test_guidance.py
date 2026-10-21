@@ -31,6 +31,10 @@ class GuidanceTests(unittest.TestCase):
         self.assertIn("```diff", text.replace("````diff", "```diff"))
         self.assertIn("general directions", text)
 
+    def test_language_name_line_is_dropped_from_code(self):
+        answer = dict(ANSWER, must_fix=[dict(ANSWER["must_fix"][0], code="diff\n-a\n+b")])
+        self.assertNotIn("\ndiff\n", guidance.render(answer)[0])
+
     def test_render_rejects_nonsense(self):
         self.assertIsNone(guidance.render("hello"))
         self.assertIsNone(guidance.render({}))

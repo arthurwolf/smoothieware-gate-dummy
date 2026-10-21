@@ -66,6 +66,9 @@ def render_item(item):
     code = str(item.get("code") or "").strip("\n")
     if code:
         language = LANGUAGES.get(str(item.get("language", "")).lower(), "")
+        first, _, rest = code.partition("\n")
+        if first.strip().lower() in LANGUAGES:  # models sometimes repeat the language name as the first line
+            code = rest.strip("\n")
         lines += ["", code_block("\n".join(code.splitlines()[:20])[:1500], language)]
     return "\n".join(lines)
 
