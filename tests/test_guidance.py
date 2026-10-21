@@ -62,6 +62,20 @@ class GuidanceTests(unittest.TestCase):
         self.assertIn("Remove wait()", data["details"])
         self.assertEqual(validate_result(data), [])
 
+    def test_failing_pr_without_code_is_asked_again(self):
+        bare = dict(ANSWER, must_fix=[dict(ANSWER["must_fix"][0], code="")])
+        root = tempfile.mkdtemp(dir=os.environ.get("TMPDIR"))
+        write_results(root, "fail")
+        open(os.path.join(root, "d.diff"), "w").write("diff")
+        argv = ["guidance.py", "--results", root, "--diff", os.path.join(root, "d.diff"), "--out", root]
+        client = mock.Mock()
+        client.complete.side_effect = [(json.dumps(bare), "m"), (json.dumps(ANSWER), "m")]
+        with mock.patch.object(guidance, "ModelClient", return_value=client), mock.patch.object(sys, "argv", argv):
+            guidance.main()
+        data = json.load(open(os.path.join(root, "guidance.result.json")))
+        self.assertEqual(client.complete.call_count, 2)
+        self.assertIn("```diff", data["details"])
+
     def test_model_outage_is_skipped(self):
         data, _ = self.run_main("fail")
         self.assertEqual(data["status"], "skipped")

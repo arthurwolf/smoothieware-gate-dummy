@@ -59,6 +59,11 @@ def text_of(value, limit):
     return safe_prose(" ".join(str(value or "").split())[:limit])
 
 
+def has_code(answer):
+    items = answer.get("must_fix") if isinstance(answer, dict) else None
+    return any(isinstance(i, dict) and str(i.get("code") or "").strip() for i in items or [])
+
+
 def render_item(item):
     lines = [f"**{text_of(item.get('title'), 120)}**", "", text_of(item.get("explanation"), 700)]
     if item.get("fix"):
@@ -125,8 +130,17 @@ def main():
             system_prompt = handle.read()
         client = ModelClient(args.base_url, [m for m in args.models.split(",") if m], os.environ.get("AI_API_KEY") or None,
                              args.max_tokens, args.timeout, args.attempts)
-        text, info = client.complete(build_messages(system_prompt, results, read_text(args.pr_text), diff_text))
-        rendered = render(extract_json(text)) if text else None
+        messages = build_messages(system_prompt, results, read_text(args.pr_text), diff_text)
+        rendered = None
+        for _ in range(2):  # a failing pull request needs a suggested diff: ask once more when the answer has no code
+            text, info = client.complete(messages)
+            answer = extract_json(text) if text else None
+            candidate = render(answer)
+            if candidate and not rendered:
+                rendered = candidate
+            if candidate and (has_code(answer) or not any(r.get("status") == "fail" for r in results)):
+                rendered = candidate
+                break
         if rendered:
             body, verdict = rendered
             status, summary = "pass", f"message written ({verdict})"
