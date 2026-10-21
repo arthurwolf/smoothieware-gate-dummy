@@ -77,6 +77,11 @@ jobs:
           python3 -I gate/scripts/ai_review.py --diff pr.diff --pr-text pr-text.txt --out results/ai \
             --prompts gate/prompts --sim-dir sim || true
 
+      - name: Message to the contributor (a model outage gives status skipped)
+        run: |
+          python3 -I gate/scripts/guidance.py --results results --diff pr.diff --pr-text pr-text.txt \
+            --out results/guidance --prompts gate/prompts || true
+
       - name: Write the report
         run: |
           python3 -I gate/scripts/report.py --results results --out report \
@@ -103,4 +108,3 @@ jobs:
           path: |
             report
             results/ai
-# reindex
