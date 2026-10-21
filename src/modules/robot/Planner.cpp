@@ -7,6 +7,7 @@
 
 using namespace std;
 
+#include "mbed.h"
 #include "mri.h"
 #include "nuts_bolts.h"
 #include "RingBuffer.h"
