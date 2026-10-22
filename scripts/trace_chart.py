@@ -368,8 +368,13 @@ def _logic_rows(parts, y, p, ax):
             parts.append(f'<path d="{path} H{LEFT + PLOT_W}" fill="none" stroke="{colour}" stroke-width="1.3"/>')
             parts.append(text(LEFT + 3, lo - 1 if level > 0 else hi + 7, "up = forward" if level > 0 else "down = reverse", 9.5, TEXT, family=MONO))
             end_level = a[side + "_dir"][-1][1] if a[side + "_dir"] else level
-            if (end_level > 0) != (level > 0):
-                parts.append(text(LEFT + PLOT_W - 3, lo - 1 if end_level > 0 else hi + 7, "now forward" if end_level > 0 else "now reverse", 9, colour, anchor="end", weight="600", family=MONO))
+            other = "pr" if side == "ref" else "ref"
+            other_end = a[other + "_dir"][-1][1] if a[other + "_dir"] else a[other + "_dir0"]
+            changed = (end_level > 0) != (level > 0)
+            # when the two sides end on different levels, label both ends so neither lane is ambiguous
+            if changed or (end_level > 0) != (other_end > 0):
+                word = "forward" if end_level > 0 else "reverse"
+                parts.append(text(LEFT + PLOT_W - 3, lo - 1 if end_level > 0 else hi + 7, f"{'now' if changed else 'stays'} {word}", 9, colour, anchor="end", weight="600", family=MONO))
         # connectors between matching pulses that moved, and the circle on the first difference
         if a["ref_i0"] == a["pr_i0"] and a["ref_total"] == a["pr_total"]:
             for r, q in zip(a["ref_pulses"], a["pr_pulses"]):
