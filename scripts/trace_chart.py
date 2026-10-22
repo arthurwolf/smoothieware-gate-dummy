@@ -327,6 +327,9 @@ def _logic_rows(parts, y, p, ax):
                 path += f" H{ax.x(t):.1f} V{hi if sign > 0 else lo}"
             parts.append(f'<path d="{path} H{LEFT + PLOT_W}" fill="none" stroke="{colour}" stroke-width="1.3"/>')
             parts.append(text(LEFT + 3, lo - 1 if level > 0 else hi + 7, "high = forward" if level > 0 else "low = reverse", 8.5, MUTED, family=MONO))
+            if a[side + "_dir"]:
+                end_level = a[side + "_dir"][-1][1]
+                parts.append(text(LEFT + PLOT_W - 3, lo - 1 if end_level > 0 else hi + 7, "now forward" if end_level > 0 else "now reverse", 9, colour, anchor="end", weight="600", family=MONO))
         # connectors between matching pulses that moved, and the circle on the first difference
         if a["ref_i0"] == a["pr_i0"] and a["ref_total"] == a["pr_total"]:
             for r, q in zip(a["ref_pulses"], a["pr_pulses"]):
@@ -342,7 +345,7 @@ def _logic_rows(parts, y, p, ax):
             rx = max((x1 - x0) / 2 + 9, 11)
             parts.append(f'<ellipse cx="{cx:.1f}" cy="{cy}" rx="{rx:.1f}" ry="{lane_h + 3}" fill="none" stroke="{RED}" stroke-width="1.8"/>')
             if on_dir:
-                parts.append(text(f"{cx:.1f}", note_y, _dir_note(a), 10.5, RED, anchor="middle", weight="600", family=MONO))
+                parts.append(text(f"{min(max(cx, LEFT + 130), WIDTH - RIGHT - 130):.1f}", note_y, _dir_note(a), 10.5, RED, anchor="middle", weight="600", family=MONO))
             if anchor["kind"] == "pulse" and anchor["ref"] is not None and anchor["pr"] is not None:
                 note = f"{(anchor['pr'] - anchor['ref']) * us:+,.0f} µs"
                 right = cx + rx + 4 + 60 < WIDTH
