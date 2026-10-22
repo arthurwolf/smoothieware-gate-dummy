@@ -482,7 +482,7 @@ def draw_case(name, sample):
         y = _logic_rows(parts, y, p, zoom)
         zoom.grid(z_top, y, parts, labels_at=y + 10)
         y += 36
-    _section_title(parts, y + 8, "Whole case", "one time axis for every panel; the yellow band marks the zoom above")
+    _section_title(parts, y + 8, "Whole case", "one time axis for every panel; the violet band marks the zoom above")
     y += 26
     sec_top = y
     y = _block_strip(parts, y, blocks, ax) + 4
@@ -498,7 +498,7 @@ def draw_case(name, sample):
     ax.grid(sec_top, y, parts, labels_at=y + 11)
     plot_end = y
     if p and drift_note:
-        # below the time labels so the red anchor line and the yellow band never cross it
+        # below the time labels so the red anchor line and the violet band never cross it
         y += 24
         parts.append(text(10, y, "Position drift: none, the PR is never more than 1 step ahead or behind on any motor", 10, MUTED))
     if p:
@@ -507,11 +507,11 @@ def draw_case(name, sample):
             parts.append(f'<line x1="{x:.1f}" y1="{sec_top}" x2="{x:.1f}" y2="{plot_end}" stroke="{RED}" stroke-width="1.4"/>')
             parts.append(f'<path d="M{x - 5:.1f},{sec_top - 7} L{x + 5:.1f},{sec_top - 7} L{x:.1f},{sec_top - 1} Z" fill="{RED}"/>')
         x0, x1 = ax.x(p["t0"]), max(ax.x(p["t1"]), ax.x(p["t0"]) + 7)
-        parts.append(f'<rect x="{x0:.1f}" y="{sec_top - 2}" width="{x1 - x0:.1f}" height="{plot_end - sec_top + 4}" fill="#d29922" opacity="0.16" stroke="#d29922" stroke-width="1"/>')
+        parts.append(f'<rect x="{x0:.1f}" y="{sec_top - 2}" width="{x1 - x0:.1f}" height="{plot_end - sec_top + 4}" fill="#a78bfa" opacity="0.16" stroke="#a78bfa" stroke-width="1"/>')
     y += 26
     y = _table(parts, y, sample)
     legend = y + 4
-    items = [(BLUE, "reference (base firmware)"), (ORANGE, "this pull request"), (RED, "difference"), ("#d29922", "zoom region"), (FAINT, "move with no difference")]
+    items = [(BLUE, "reference (base firmware)"), (ORANGE, "this pull request"), (RED, "difference"), ("#a78bfa", "zoom region"), (FAINT, "move with no difference")]
     x = 10
     for colour, label in items:
         parts.append(rect(x, legend, 11, 11, colour, rx=2))
