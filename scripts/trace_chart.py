@@ -259,6 +259,7 @@ def _wrap(s, width):
 
 def _block_strip(parts, y, blocks, ax):
     _panel(parts, y, 40, "Planned moves", "1 cell = 1 move")
+    parts.append(text(LEFT - 8, y + 36, "colour = differs", 10.5, MUTED, anchor="end"))
     for lane, key, colour in ((0, "r", BLUE), (1, "p", ORANGE)):
         top = y + 4 + lane * 17
         parts.append(text(LEFT + 3, top + 10.5, "reference" if lane == 0 else "this PR", 8.5, MUTED))
@@ -366,7 +367,7 @@ def _logic_rows(parts, y, p, ax):
             for t, sign in a[side + "_dir"]:
                 path += f" H{ax.x(t):.1f} V{hi if sign > 0 else lo}"
             parts.append(f'<path d="{path} H{LEFT + PLOT_W}" fill="none" stroke="{colour}" stroke-width="1.3"/>')
-            parts.append(text(LEFT + 3, lo - 1 if level > 0 else hi + 7, "up = forward" if level > 0 else "down = reverse", 9.5, TEXT, family=MONO))
+            parts.append(text(LEFT + 3, lo - 1 if level > 0 else hi + 7, "high = forward" if level > 0 else "low = reverse", 9.5, TEXT, family=MONO))
             end_level = a[side + "_dir"][-1][1] if a[side + "_dir"] else level
             other = "pr" if side == "ref" else "ref"
             other_end = a[other + "_dir"][-1][1] if a[other + "_dir"] else a[other + "_dir0"]
