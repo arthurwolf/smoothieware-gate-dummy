@@ -324,7 +324,7 @@ def _table(parts, y, sample):
             row((f"{int(a['axis'])}", f"{int(a['ref_total']):,}", f"{int(a['pr_total']):,}", f"{diff:+,d}" if diff else "same", moved), RED if diff else TEXT)
         y += 6
     if sample["rows"]:
-        row(("block", "start ref", "start PR", "ticks ref → PR", "exit mm/s ref → PR"), MUTED, "600")
+        row(("worst blocks", "start ref", "start PR", "ticks ref → PR", "exit mm/s ref → PR"), MUTED, "600")
         for r in sample["rows"]:
             e, q = r["r"], r["p"]
             label = f"#{(e or q)[6]}"
