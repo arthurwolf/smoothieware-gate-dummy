@@ -252,6 +252,16 @@ def _drift_rows(parts, y, p, ax):
     return y
 
 
+def _dir_difference_ticks(axis_entry, fallback):
+    """Ticks of the first direction change that differs between the sides, inside the zoom window (else the anchor tick)."""
+    ref, pr = axis_entry["ref_dir"], axis_entry["pr_dir"]
+    for i in range(max(len(ref), len(pr))):
+        r, q = (ref[i] if i < len(ref) else None), (pr[i] if i < len(pr) else None)
+        if r != q:
+            return [t[0] for t in (r, q) if t is not None]
+    return [fallback]
+
+
 def _logic_rows(parts, y, p, ax):
     anchor = p["anchor"]
     us = p["tick_us"]
@@ -288,13 +298,16 @@ def _logic_rows(parts, y, p, ax):
                 if abs(r - q) > 4:
                     parts.append(f'<line x1="{ax.x(r):.1f}" y1="{y + lane_h - 3}" x2="{ax.x(q):.1f}" y2="{y + lane_h + 1}" stroke="{RED}" stroke-width="1" opacity="0.8"/>')
         if anchor and int(anchor["axis"]) == int(a["axis"]):
-            ticks = [t for t in (anchor["ref"], anchor["pr"]) if t is not None] if anchor["kind"] == "pulse" else [anchor["tick"]]
+            ticks = [t for t in (anchor["ref"], anchor["pr"]) if t is not None] if anchor["kind"] == "pulse" else _dir_difference_ticks(a, anchor["tick"])
             x0, x1 = ax.x(min(ticks)), ax.x(max(ticks))
             parts.append(f'<rect x="{x0 - 3:.1f}" y="{y - 2}" width="{x1 - x0 + 8:.1f}" height="{group_h - 2}" fill="{RED}" opacity="0.14"/>')
             note_y = y - 4
-            cx, cy = (x0 + x1) / 2 + 1, y + lane_h
+            on_dir = anchor["kind"] == "dir"
+            cx, cy = (x0 + x1) / 2 + 1, y + (lane_h * 3 if on_dir else lane_h)
             rx = max((x1 - x0) / 2 + 9, 11)
             parts.append(f'<ellipse cx="{cx:.1f}" cy="{cy}" rx="{rx:.1f}" ry="{lane_h + 3}" fill="none" stroke="{RED}" stroke-width="1.8"/>')
+            if on_dir:
+                parts.append(text(f"{cx:.1f}", note_y, "direction signal differs here", 10.5, RED, anchor="middle", weight="600", family=MONO))
             if anchor["kind"] == "pulse" and anchor["ref"] is not None and anchor["pr"] is not None:
                 note = f"{(anchor['pr'] - anchor['ref']) * us:+,.0f} µs"
                 right = cx + rx + 4 + 60 < WIDTH

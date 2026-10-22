@@ -89,3 +89,10 @@ class RoundTwoFixes(unittest.TestCase):
         import trace_chart
         sample = trace_chart.sample_case({"blocks": []}, {"blocks": []}, [], None, "x" * 201)
         self.assertFalse(trace_chart.valid_sample(sample))
+
+
+class DirDifferenceCircle(unittest.TestCase):
+    def test_dir_ticks_are_the_first_differing_change(self):
+        entry = {"ref_dir": [[100, 1], [300, -1]], "pr_dir": [[100, 1], [350, -1]]}
+        self.assertEqual(trace_chart._dir_difference_ticks(entry, 7), [300, 350])
+        self.assertEqual(trace_chart._dir_difference_ticks({"ref_dir": [], "pr_dir": []}, 7), [7])
