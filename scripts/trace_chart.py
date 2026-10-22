@@ -194,6 +194,24 @@ def _dir_headline(p, axis, anchor, us):
     return f"First difference: the direction signal of motor {axis} changes differently, {when}."
 
 
+def _verdict(p):
+    """One short bold line for a direction sign flip (the case that moves a motor the wrong way), else None."""
+    a = p["anchor"]
+    if not a or a["kind"] != "dir":
+        return None
+    axis = int(a["axis"])
+    entry = next((x for x in p["axes"] if int(x["axis"]) == axis), None)
+    if not entry:
+        return None
+    ref, pr = entry["ref_dir"], entry["pr_dir"]
+    for i in range(min(len(ref), len(pr))):
+        if ref[i] != pr[i]:
+            if ref[i][1] != pr[i][1]:
+                return f"Motor {axis} moves the wrong way from {min(ref[i][0], pr[i][0]) * p['tick_us'] / 1000:,.1f} ms"
+            return None
+    return None
+
+
 def _headline(p, blocks_differ):
     a = p["anchor"] if p else None
     if not a:
@@ -405,9 +423,13 @@ def draw_case(name, sample):
              text(WIDTH - RIGHT, 24, f"{sample['differing']:,} of {sample['total']:,} planned moves differ", 12, MUTED, anchor="end")]
     y = 38
     if p:
-        for line in _wrap(_headline(p, sample["differing"]), 95):
+        verdict = _verdict(p)
+        if verdict:
+            y += 18
+            parts.append(text(10, y, verdict, 17, RED, weight="700"))
+        for line in _wrap(_headline(p, sample["differing"]), 100):
             y += 15
-            parts.append(text(10, y, line, 13, TEXT, weight="600"))
+            parts.append(text(10, y, line, 12, TEXT, weight="600" if not verdict else "normal"))
     else:
         for line in _wrap("Pulse view unavailable: " + (sample.get("reason") or "no per-step data") + ". Showing the planner blocks only.", 108):
             y += 15
