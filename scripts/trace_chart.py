@@ -350,7 +350,7 @@ def _logic_rows(parts, y, p, ax):
             for t, sign in a[side + "_dir"]:
                 path += f" H{ax.x(t):.1f} V{hi if sign > 0 else lo}"
             parts.append(f'<path d="{path} H{LEFT + PLOT_W}" fill="none" stroke="{colour}" stroke-width="1.3"/>')
-            parts.append(text(LEFT + 3, lo - 1 if level > 0 else hi + 7, "high = forward" if level > 0 else "low = reverse", 8.5, MUTED, family=MONO))
+            parts.append(text(LEFT + 3, lo - 1 if level > 0 else hi + 7, "up = forward" if level > 0 else "down = reverse", 9.5, TEXT, family=MONO))
             end_level = a[side + "_dir"][-1][1] if a[side + "_dir"] else level
             if (end_level > 0) != (level > 0):
                 parts.append(text(LEFT + PLOT_W - 3, lo - 1 if end_level > 0 else hi + 7, "now forward" if end_level > 0 else "now reverse", 9, colour, anchor="end", weight="600", family=MONO))
@@ -397,9 +397,10 @@ def _table(parts, y, sample):
             if an and int(an["axis"]) == int(a["axis"]) and an["kind"] == "pulse":
                 moved = f"#{int(an['index']) + 1:,}" + (f" {(an['pr'] - an['ref']) * p['tick_us']:+,.0f} µs" if an["ref"] is not None and an["pr"] is not None and a["ref_total"] == a["pr_total"] else " (counts differ)")
             rd, pd = int(a.get("ref_dir_total", 0)), int(a.get("pr_dir_total", 0))
+            wrong_way = bool(_verdict(p)) and int(an["axis"]) == int(a["axis"])
             dir_differs = bool(an and an["kind"] == "dir" and int(an["axis"]) == int(a["axis"])) or rd != pd
             row((f"{int(a['axis'])}", f"{int(a['ref_total']):,}", f"{int(a['pr_total']):,}", f"{diff:+,d}" if diff else "same", moved,
-                 f"{rd:,} → {pd:,}" + (" (timing differs)" if dir_differs and rd == pd else " (count differs)" if dir_differs else " same")), TEXT,
+                 f"{rd:,} → {pd:,}" + ((" (wrong way)" if wrong_way else " (timing differs)") if dir_differs and rd == pd else " (count differs)" if dir_differs else " same")), TEXT,
                 cell_colours={**({3: RED} if diff else {}), **({5: RED} if dir_differs else {})})
         y += 6
     if sample["rows"]:
