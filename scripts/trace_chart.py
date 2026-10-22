@@ -336,7 +336,7 @@ def _logic_rows(parts, y, p, ax):
     anchor = p["anchor"]
     us = p["tick_us"]
     for a in p["axes"]:
-        lane_h = 15
+        lane_h = 18
         group_h = lane_h * 4 + 6
         if anchor and int(a["axis"]) not in [int(d) for d in p.get("differing_axes", [])] and len(p["axes"]) > 1:
             # an identical axis is one line, not four lanes of matching noise (its pulses are in the numbers table)
@@ -354,8 +354,8 @@ def _logic_rows(parts, y, p, ax):
             path = f"M{LEFT},{base}"
             for t in a[side + "_pulses"]:
                 x = ax.x(t)
-                path += f" H{x:.1f} V{high} h1.6 V{base}"
-            parts.append(f'<path d="{path} H{LEFT + PLOT_W}" fill="none" stroke="{colour}" stroke-width="1.3"/>')
+                path += f" H{x:.1f} V{high} h2.6 V{base}"
+            parts.append(f'<path d="{path} H{LEFT + PLOT_W}" fill="none" stroke="{colour}" stroke-width="1.6"/>')
         for n, (side, colour, name) in enumerate((("ref", BLUE, "direction: reference"), ("pr", ORANGE, "direction: this PR"))):
             ly = y + (2 + n) * lane_h
             parts.append(f'<rect x="{LEFT}" y="{ly}" width="{PLOT_W}" height="{lane_h - 2}" fill="{TRACK}" opacity="0.55"/>')
