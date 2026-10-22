@@ -146,7 +146,7 @@ class _Axis:
             parts.append(f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{bottom}" stroke="{GRID}" stroke-width="0.6" stroke-dasharray="2,3"/>')
             if labels_at is not None:
                 anchor = "start" if i == 0 else "end" if i == n else "middle"
-                parts.append(text(f"{x:.1f}", labels_at, self.label(tick), 9.5, MUTED, anchor=anchor, family=MONO))
+                parts.append(text(f"{x:.1f}", labels_at, self.label(tick), 10.5, TEXT, anchor=anchor, family=MONO))
 
 
 def _line(points, colour, width, dash=""):
@@ -245,7 +245,7 @@ def _wrap(s, width):
 
 
 def _block_strip(parts, y, blocks, ax):
-    _panel(parts, y, 40, "Planned moves", "one cell = one move")
+    _panel(parts, y, 40, "Planned moves", "1 cell = 1 move")
     for lane, key, colour in ((0, "r", BLUE), (1, "p", ORANGE)):
         top = y + 4 + lane * 17
         parts.append(text(LEFT + 3, top + 10.5, "reference" if lane == 0 else "this PR", 8.5, MUTED))
@@ -482,12 +482,12 @@ def draw_case(name, sample):
     y += 26
     y = _table(parts, y, sample)
     legend = y + 4
-    items = [(BLUE, "reference (base firmware)"), (ORANGE, "this pull request"), (RED, "difference"), ("#d29922", "zoom region"), (FAINT, "move that matches")]
+    items = [(BLUE, "reference (base firmware)"), (ORANGE, "this pull request"), (RED, "difference"), ("#d29922", "zoom region"), (FAINT, "move with no difference")]
     x = 10
     for colour, label in items:
         parts.append(rect(x, legend, 11, 11, colour, rx=2))
-        parts.append(text(x + 16, legend + 10, label, 10.5, MUTED))
-        x += 24 + len(label) * 5.9
+        parts.append(text(x + 16, legend + 11, label, 11.5, TEXT))
+        x += 26 + len(label) * 6.5
     height = legend + 28
     title = f"Step comparison of case {name}: reference against this pull request"
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {WIDTH} {height:.0f}" width="{WIDTH}" height="{height:.0f}" role="img" '
