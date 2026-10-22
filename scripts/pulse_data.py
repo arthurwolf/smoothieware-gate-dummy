@@ -16,22 +16,16 @@ SHIFT_TICKS = 4       # a pulse moved by more than this many ticks counts as a d
 
 def _axis_trains(result):
     """{axis: (pulse ticks, [(tick, sign)] direction changes)} from a simulator result."""
-    pulses, dirs, level = {}, {}, {}
+    pulses, dirs = {}, {}
     for block in result.get("blocks", []):
         start = int(block["start_tick"])
-        initial = block.get("step_dirs") or []
         for axis, ticks in enumerate(block.get("step_ticks", [])):
-            # absolute DIR level at the block start, so axes that never reverse still draw their real level
-            if ticks and axis < len(initial) and int(initial[axis]) != level.get(axis, 0):
-                level[axis] = int(initial[axis])
-                dirs.setdefault(axis, []).append((start + int(ticks[0]), level[axis]))
             stride = block.get("step_tick_stride", [1] * 99)[axis] if axis < len(block.get("step_tick_stride", [])) else 1
             if stride != 1:
                 return None  # thinned list: not a real pulse train
             pulses.setdefault(axis, []).extend(start + int(t) for t in ticks)
             for index, sign in (block.get("dir_changes") or [[]] * (axis + 1))[axis]:
                 if index < len(ticks):
-                    level[axis] = int(sign)
                     dirs.setdefault(axis, []).append((start + int(ticks[index]), int(sign)))
     return pulses, dirs
 

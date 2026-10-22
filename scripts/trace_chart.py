@@ -246,12 +246,7 @@ def _drift_rows(parts, y, p, ax):
         colour = RED if any(a["drift"]) else MUTED
         parts.append(_line(pts, colour, 1.8))
         last = a["drift"][-1]
-        words = f"{last:+,d} steps at the end" if last else "no drift at the end"
-        # solid pill behind the label: the drift line passes under it instead of striking through the text
-        pill = len(words) * 5.5 + 10
-        parts.append(rect(LEFT + PLOT_W - pill - 1, y + 1, pill, 14, BG, 3))
-        parts.append(text(LEFT + PLOT_W - 6, y + 11, words, 9, colour if last else MUTED, anchor="end", family=MONO))
-        parts.append(text(LEFT + 3, y + 10, f"±{peak:,} steps", 9, MUTED, family=MONO))
+        parts.append(text(LEFT + 3, y + 10, f"±{peak:,} steps · ends {last:+,d}" if last else f"±{peak:,} steps · ends at 0", 9, colour if last else MUTED, family=MONO))
         y += h + 4
     return y
 
@@ -285,6 +280,7 @@ def _logic_rows(parts, y, p, ax):
             for t, sign in a[side + "_dir"]:
                 path += f" H{ax.x(t):.1f} V{hi if sign > 0 else lo}"
             parts.append(f'<path d="{path} H{LEFT + PLOT_W}" fill="none" stroke="{colour}" stroke-width="1.3"/>')
+            parts.append(text(LEFT + 3, lo - 1 if level > 0 else hi + 7, "high" if level > 0 else "low", 7.5, MUTED, family=MONO))
         # connectors between matching pulses that moved, and the circle on the first difference
         if a["ref_i0"] == a["pr_i0"] and a["ref_total"] == a["pr_total"]:
             for r, q in zip(a["ref_pulses"], a["pr_pulses"]):
