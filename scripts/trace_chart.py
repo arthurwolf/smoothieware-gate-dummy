@@ -388,7 +388,7 @@ def _logic_rows(parts, y, p, ax):
             on_dir = anchor["kind"] == "dir"
             cx, cy = (x0 + x1) / 2 + 1, y + (lane_h * 3 if on_dir else lane_h)
             rx = max((x1 - x0) / 2 + 9, 11)
-            parts.append(f'<ellipse cx="{cx:.1f}" cy="{cy}" rx="{rx:.1f}" ry="{lane_h + 3}" fill="none" stroke="{RED}" stroke-width="1.8"/>')
+            parts.append(f'<ellipse cx="{cx:.1f}" cy="{cy}" rx="{rx:.1f}" ry="{lane_h + 6}" fill="none" stroke="{RED}" stroke-width="2.6"/>')
             if on_dir:
                 parts.append(text(f"{min(max(cx, LEFT + 160), WIDTH - RIGHT - 130):.1f}", note_y, _dir_note(a), 10.5, RED, anchor="middle", weight="600", family=MONO))
             if anchor["kind"] == "pulse" and anchor["ref"] is not None and anchor["pr"] is not None:
