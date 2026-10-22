@@ -246,9 +246,11 @@ def _drift_rows(parts, y, p, ax):
         colour = RED if any(a["drift"]) else MUTED
         parts.append(_line(pts, colour, 1.8))
         last = a["drift"][-1]
-        label = text(LEFT + PLOT_W - 3, y + 10, f"{last:+,d} steps at the end" if last else "no drift at the end", 9, colour if last else MUTED, anchor="end", family=MONO)
-        # halo so the red drift line returning to zero never strikes through the label
-        parts.append(label.replace("<text ", f'<text stroke="{BG}" stroke-width="3" paint-order="stroke" ', 1))
+        words = f"{last:+,d} steps at the end" if last else "no drift at the end"
+        # solid pill behind the label: the drift line passes under it instead of striking through the text
+        pill = len(words) * 5.5 + 10
+        parts.append(rect(LEFT + PLOT_W - pill - 1, y + 1, pill, 14, BG, 3))
+        parts.append(text(LEFT + PLOT_W - 6, y + 11, words, 9, colour if last else MUTED, anchor="end", family=MONO))
         parts.append(text(LEFT + 3, y + 10, f"±{peak:,} steps", 9, MUTED, family=MONO))
         y += h + 4
     return y
