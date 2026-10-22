@@ -421,7 +421,7 @@ def _table(parts, y, sample):
             wrong_way = bool(_verdict(p)) and int(an["axis"]) == int(a["axis"])
             dir_differs = bool(an and an["kind"] == "dir" and int(an["axis"]) == int(a["axis"])) or rd != pd
             row((f"{int(a['axis'])}", f"{int(a['ref_total']):,}", f"{int(a['pr_total']):,}", f"{diff:+,d}" if diff else "same", moved,
-                 f"{rd:,} → {pd:,}" + ((" (wrong way)" if wrong_way else " (timing differs)") if dir_differs and rd == pd else " (count differs)" if dir_differs else " same")), TEXT,
+                 f"{rd:,} → {pd:,}" + ((" (same count, flipped)" if wrong_way else " (timing differs)") if dir_differs and rd == pd else " (count differs)" if dir_differs else " same")), TEXT,
                 cell_colours={**({3: RED} if diff else {}), **({5: RED} if dir_differs else {})})
         y += 6
     if sample["rows"]:
