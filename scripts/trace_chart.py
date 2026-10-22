@@ -237,12 +237,13 @@ def _speed_rows(parts, y, p, ax):
 def _drift_rows(parts, y, p, ax):
     for a in p["axes"]:
         peak = max(max(abs(v) for v in a["drift"]), 1)
-        h = 40
+        h = 50
         _panel(parts, y, h, f"Motor {int(a['axis'])}", "PR minus ref")
-        mid = y + h / 2
+        top = y + 14  # the top 14 px hold the label, so the trace never crosses it
+        mid = top + (h - 14) / 2
         parts.append(f'<line x1="{LEFT}" y1="{mid}" x2="{LEFT + PLOT_W}" y2="{mid}" stroke="{FAINT}" stroke-width="0.8"/>')
         edges = p["edges"]
-        pts = [(ax.x(edges[i + 1]), mid - v / peak * (h / 2 - 5)) for i, v in enumerate(a["drift"])]
+        pts = [(ax.x(edges[i + 1]), mid - v / peak * ((h - 14) / 2 - 3)) for i, v in enumerate(a["drift"])]
         colour = RED if any(a["drift"]) else MUTED
         parts.append(_line(pts, colour, 1.8))
         last = a["drift"][-1]
