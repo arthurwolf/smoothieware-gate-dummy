@@ -111,3 +111,9 @@ class DirTotals(unittest.TestCase):
         ref = {"blocks": [], "steps_per_mm": [80.0]}
         sample = {"pulses": {"axes": [{"axis": 0, "per_mm": 80.0, "ref_total": 1, "pr_total": 1, "ref_dir0": 0, "pr_dir0": 0, "ref_i0": 0, "pr_i0": 0, "ref_dir_total": "x", "pr_dir_total": 1}]}}
         self.assertFalse(trace_chart.valid_sample(sample))
+
+
+class DirNote(unittest.TestCase):
+    def test_note_names_both_directions(self):
+        entry = {"ref_dir": [[5, -1]], "pr_dir": [[5, 1]]}
+        self.assertEqual(trace_chart._dir_note(entry), "reference turns reverse, this PR turns forward")

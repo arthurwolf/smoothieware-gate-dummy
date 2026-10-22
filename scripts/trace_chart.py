@@ -274,6 +274,19 @@ def _drift_rows(parts, y, p, ax):
     return y
 
 
+def _dir_note(axis_entry):
+    """Short plain note on the DIR lanes: what each side does at the first differing edge."""
+    ref, pr = axis_entry["ref_dir"], axis_entry["pr_dir"]
+    for i in range(max(len(ref), len(pr))):
+        r, q = (ref[i] if i < len(ref) else None), (pr[i] if i < len(pr) else None)
+        if r != q:
+            word = lambda c: "forward" if c[1] > 0 else "reverse"
+            if r and q and r[1] != q[1]:
+                return f"reference turns {word(r)}, this PR turns {word(q)}"
+            return "direction change differs here"
+    return "direction signal differs here"
+
+
 def _dir_difference_ticks(axis_entry, fallback):
     """Ticks of the first direction change that differs between the sides, inside the zoom window (else the anchor tick)."""
     ref, pr = axis_entry["ref_dir"], axis_entry["pr_dir"]
@@ -329,7 +342,7 @@ def _logic_rows(parts, y, p, ax):
             rx = max((x1 - x0) / 2 + 9, 11)
             parts.append(f'<ellipse cx="{cx:.1f}" cy="{cy}" rx="{rx:.1f}" ry="{lane_h + 3}" fill="none" stroke="{RED}" stroke-width="1.8"/>')
             if on_dir:
-                parts.append(text(f"{cx:.1f}", note_y, "direction signal differs here", 10.5, RED, anchor="middle", weight="600", family=MONO))
+                parts.append(text(f"{cx:.1f}", note_y, _dir_note(a), 10.5, RED, anchor="middle", weight="600", family=MONO))
             if anchor["kind"] == "pulse" and anchor["ref"] is not None and anchor["pr"] is not None:
                 note = f"{(anchor['pr'] - anchor['ref']) * us:+,.0f} µs"
                 right = cx + rx + 4 + 60 < WIDTH
@@ -359,7 +372,7 @@ def _table(parts, y, sample):
             rd, pd = int(a.get("ref_dir_total", 0)), int(a.get("pr_dir_total", 0))
             dir_differs = bool(an and an["kind"] == "dir" and int(an["axis"]) == int(a["axis"])) or rd != pd
             row((f"{int(a['axis'])}", f"{int(a['ref_total']):,}", f"{int(a['pr_total']):,}", f"{diff:+,d}" if diff else "same", moved,
-                 f"{rd:,} → {pd:,}" + (" differ" if dir_differs else " same")), RED if (diff or dir_differs) else TEXT)
+                 f"{rd:,} → {pd:,}" + (" (signs or timing differ)" if dir_differs else " same")), RED if (diff or dir_differs) else TEXT)
         y += 6
     if sample["rows"]:
         row(("worst moves", "start ref", "start PR", "ticks ref → PR", "exit mm/s ref → PR"), MUTED, "600")
