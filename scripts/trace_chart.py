@@ -395,9 +395,9 @@ def draw_case(name, sample):
              text(WIDTH - RIGHT, 24, f"{sample['differing']:,} of {sample['total']:,} planned moves differ", 12, MUTED, anchor="end")]
     y = 38
     if p:
-        for line in _wrap(_headline(p, sample["differing"]), 108):
+        for line in _wrap(_headline(p, sample["differing"]), 95):
             y += 15
-            parts.append(text(10, y, line, 11.5, TEXT))
+            parts.append(text(10, y, line, 13, TEXT, weight="600"))
     else:
         for line in _wrap("Pulse view unavailable: " + (sample.get("reason") or "no per-step data") + ". Showing the planner blocks only.", 108):
             y += 15
@@ -406,17 +406,30 @@ def draw_case(name, sample):
     blocks = sample["blocks"]
     last = max([b[k][0] + b[k][1] for b in blocks for k in ("r", "p") if b[k]] + [1])
     ax = _Axis(0, p["end"] if p else last, p["tick_us"] if p else 10)
-    top = y
-    _section_title(parts, y + 8, "Whole case", "one time axis for every panel; the yellow band marks the zoom below")
-    y += 18
+    if p:
+        # the zoom comes first: it is the evidence for the headline sentence
+        zoom = _Axis(p["t0"], p["t1"], p["tick_us"])
+        span_us = (p["t1"] - p["t0"]) * p["tick_us"]
+        _section_title(parts, y + 8, "Zoom on the first difference", f"{span_us / 1000:,.2f} ms wide; STEP pulse width not to scale")
+        y += 20
+        z_top = y
+        y = _logic_rows(parts, y, p, zoom)
+        zoom.grid(z_top, y, parts, labels_at=y + 10)
+        y += 36
+    _section_title(parts, y + 8, "Whole case", "one time axis for every panel; the yellow band marks the zoom above")
+    y += 26
     sec_top = y
     y = _block_strip(parts, y, blocks, ax) + 4
     if p:
         y = _speed_rows(parts, y, p, ax)
         y += 2
-        parts.append(text(10, y + 9, "Position drift: steps the PR is ahead (+) or behind (-) the reference", 10, MUTED))
-        y += 14
-        y = _drift_rows(parts, y, p, ax)
+        if any(any(abs(v) > 1 for v in a["drift"]) for a in p["axes"]):
+            parts.append(text(10, y + 9, "Position drift: steps the PR is ahead (+) or behind (-) the reference", 10, MUTED))
+            y += 14
+            y = _drift_rows(parts, y, p, ax)
+        else:
+            parts.append(text(10, y + 12, "Position drift: none, the PR is never more than 1 step ahead or behind on any motor", 10, MUTED))
+            y += 18
     ax.grid(sec_top, y, parts, labels_at=y + 11)
     if p:
         if p["anchor"]:
@@ -426,15 +439,6 @@ def draw_case(name, sample):
         x0, x1 = ax.x(p["t0"]), max(ax.x(p["t1"]), ax.x(p["t0"]) + 7)
         parts.append(f'<rect x="{x0:.1f}" y="{sec_top - 2}" width="{x1 - x0:.1f}" height="{y - sec_top + 4}" fill="#d29922" opacity="0.16" stroke="#d29922" stroke-width="1"/>')
     y += 26
-    if p:
-        zoom = _Axis(p["t0"], p["t1"], p["tick_us"])
-        span_us = (p["t1"] - p["t0"]) * p["tick_us"]
-        _section_title(parts, y, "Zoom on the first difference", f"{span_us / 1000:,.2f} ms wide; STEP pulse width not to scale")
-        y += 12
-        z_top = y
-        y = _logic_rows(parts, y, p, zoom)
-        zoom.grid(z_top, y, parts, labels_at=y + 10)
-        y += 28
     y = _table(parts, y, sample)
     legend = y + 4
     items = [(BLUE, "reference (base firmware)"), (ORANGE, "this pull request"), (RED, "difference"), ("#d29922", "zoom region"), (FAINT, "move that matches")]
