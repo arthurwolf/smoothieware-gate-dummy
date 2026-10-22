@@ -441,6 +441,7 @@ def draw_case(name, sample):
         else:
             drift_note = True
     ax.grid(sec_top, y, parts, labels_at=y + 11)
+    plot_end = y
     if p and drift_note:
         # below the time labels so the red anchor line and the yellow band never cross it
         y += 24
@@ -448,10 +449,10 @@ def draw_case(name, sample):
     if p:
         if p["anchor"]:
             x = ax.x(p["anchor"]["tick"])
-            parts.append(f'<line x1="{x:.1f}" y1="{sec_top}" x2="{x:.1f}" y2="{y}" stroke="{RED}" stroke-width="1.4"/>')
+            parts.append(f'<line x1="{x:.1f}" y1="{sec_top}" x2="{x:.1f}" y2="{plot_end}" stroke="{RED}" stroke-width="1.4"/>')
             parts.append(f'<path d="M{x - 5:.1f},{sec_top - 7} L{x + 5:.1f},{sec_top - 7} L{x:.1f},{sec_top - 1} Z" fill="{RED}"/>')
         x0, x1 = ax.x(p["t0"]), max(ax.x(p["t1"]), ax.x(p["t0"]) + 7)
-        parts.append(f'<rect x="{x0:.1f}" y="{sec_top - 2}" width="{x1 - x0:.1f}" height="{y - sec_top + 4}" fill="#d29922" opacity="0.16" stroke="#d29922" stroke-width="1"/>')
+        parts.append(f'<rect x="{x0:.1f}" y="{sec_top - 2}" width="{x1 - x0:.1f}" height="{plot_end - sec_top + 4}" fill="#d29922" opacity="0.16" stroke="#d29922" stroke-width="1"/>')
     y += 26
     y = _table(parts, y, sample)
     legend = y + 4
