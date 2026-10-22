@@ -164,7 +164,7 @@ def _fmt(v):
 def _panel(parts, y, h, label, sub):
     parts.append(f'<rect x="{LEFT}" y="{y}" width="{PLOT_W}" height="{h}" fill="{TRACK}" opacity="0.55"/>')
     parts.append(text(LEFT - 8, y + 13, label, 11, TEXT, anchor="end", weight="600"))
-    parts.append(text(LEFT - 8, y + 25, sub, 9.5, MUTED, anchor="end"))
+    parts.append(text(LEFT - 8, y + 25, sub, 10.5, MUTED, anchor="end"))
 
 
 def _section_title(parts, y, title, note):
@@ -282,7 +282,7 @@ def _speed_rows(parts, y, p, ax):
             return [((ax.x(edges[i]) + ax.x(edges[i + 1])) / 2, y + h - 4 - v / peak * (h - 12)) for i, v in enumerate(vals)]
         parts.append(_line(pts(a["ref_speed"]), BLUE, 2.6))
         parts.append(_line(pts(a["pr_speed"]), ORANGE, 1.4))
-        parts.append(text(LEFT - 8, y + 37, f"max {_fmt(peak)}", 9.5, MUTED, anchor="end", family=MONO))
+        parts.append(text(LEFT - 8, y + 37, f"max {_fmt(peak)}", 10.5, MUTED, anchor="end", family=MONO))
         if all(abs(r - q) <= 0.5 for r, q in zip(a["ref_speed"], a["pr_speed"])):
             # the curves coincide, so say so instead of leaving the reader to wonder whether one is missing
             parts.append(text(LEFT + PLOT_W - 4, y + 11, "same speed in reference and PR", 9.5, TEXT, anchor="end"))
@@ -348,7 +348,7 @@ def _logic_rows(parts, y, p, ax):
         for n, (side, colour, name) in enumerate((("ref", BLUE, "steps: reference"), ("pr", ORANGE, "steps: this PR"))):
             ly = y + n * lane_h
             parts.append(f'<rect x="{LEFT}" y="{ly}" width="{PLOT_W}" height="{lane_h - 2}" fill="{TRACK}" opacity="0.55"/>')
-            parts.append(text(LEFT - 8, ly + 10, name, 8.5, MUTED, anchor="end"))
+            parts.append(text(LEFT - 8, ly + 10, name, 9.5, MUTED, anchor="end"))
             base, high = ly + lane_h - 4, ly + 2
             path = f"M{LEFT},{base}"
             for t in a[side + "_pulses"]:
@@ -358,7 +358,7 @@ def _logic_rows(parts, y, p, ax):
         for n, (side, colour, name) in enumerate((("ref", BLUE, "direction: reference"), ("pr", ORANGE, "direction: this PR"))):
             ly = y + (2 + n) * lane_h
             parts.append(f'<rect x="{LEFT}" y="{ly}" width="{PLOT_W}" height="{lane_h - 2}" fill="{TRACK}" opacity="0.55"/>')
-            parts.append(text(LEFT - 8, ly + 10, name, 8.5, MUTED, anchor="end"))
+            parts.append(text(LEFT - 8, ly + 10, name, 9.5, MUTED, anchor="end"))
             level = a[side + "_dir0"]
             lo, hi = ly + lane_h - 4, ly + 2
             yy = hi if level > 0 else lo
@@ -374,7 +374,7 @@ def _logic_rows(parts, y, p, ax):
             # when the two sides end on different levels, label both ends so neither lane is ambiguous
             if changed or (end_level > 0) != (other_end > 0):
                 word = "forward" if end_level > 0 else "reverse"
-                parts.append(text(LEFT + PLOT_W - 3, lo - 1 if end_level > 0 else hi + 7, f"{'now' if changed else 'stays'} {word}", 9, colour, anchor="end", weight="600", family=MONO))
+                parts.append(text(LEFT + PLOT_W - 3, lo - 1 if end_level > 0 else hi + 7, f"{'now' if changed else 'stays'} {word}", 10, colour, anchor="end", weight="600", family=MONO))
         # connectors between matching pulses that moved, and the circle on the first difference
         if a["ref_i0"] == a["pr_i0"] and a["ref_total"] == a["pr_total"]:
             for r, q in zip(a["ref_pulses"], a["pr_pulses"]):
