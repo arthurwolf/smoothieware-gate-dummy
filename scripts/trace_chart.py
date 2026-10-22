@@ -371,7 +371,7 @@ def _table(parts, y, sample):
         for n, (x, c) in enumerate(zip(cols, cells)):
             parts.append(text(x + (88 if x == cols[0] else 0), y, c, 10, (cell_colours or {}).get(n, colour), weight=weight, family=MONO, anchor="end" if x == cols[0] else "start"))
     if p:
-        row(("motor", "steps ref", "steps PR", "step count", "first moved pulse", "direction changes ref → PR"), MUTED, "600")
+        row(("motor", "base steps", "PR steps", "step count", "first moved pulse", "direction changes, base → PR"), MUTED, "600")
         for a in p["axes"]:
             diff = int(a["pr_total"]) - int(a["ref_total"])
             moved = "-"
@@ -381,11 +381,11 @@ def _table(parts, y, sample):
             rd, pd = int(a.get("ref_dir_total", 0)), int(a.get("pr_dir_total", 0))
             dir_differs = bool(an and an["kind"] == "dir" and int(an["axis"]) == int(a["axis"])) or rd != pd
             row((f"{int(a['axis'])}", f"{int(a['ref_total']):,}", f"{int(a['pr_total']):,}", f"{diff:+,d}" if diff else "same", moved,
-                 f"{rd:,} → {pd:,}" + (" (signs or timing differ)" if dir_differs else " same")), TEXT,
+                 f"{rd:,} → {pd:,}" + (" (timing differs)" if dir_differs and rd == pd else " (count differs)" if dir_differs else " same")), TEXT,
                 cell_colours={**({3: RED} if diff else {}), **({5: RED} if dir_differs else {})})
         y += 6
     if sample["rows"]:
-        row(("worst moves", "start ref", "start PR", "ms ref → PR", "exit mm/s ref → PR"), MUTED, "600")
+        row(("worst moves", "base start", "PR start", "ms base → PR", "end mm/s base → PR"), MUTED, "600")
         for r in sample["rows"]:
             e, q = r["r"], r["p"]
             label = f"#{(e or q)[6]}"
@@ -439,12 +439,12 @@ def draw_case(name, sample):
             y += 14
             y = _drift_rows(parts, y, p, ax)
         else:
-            drift_note = y + 12
-            y += 18
+            drift_note = True
     ax.grid(sec_top, y, parts, labels_at=y + 11)
     if p and drift_note:
-        parts.append(rect(8, drift_note - 10, 440, 14, BG))
-        parts.append(text(10, drift_note, "Position drift: none, the PR is never more than 1 step ahead or behind on any motor", 10, MUTED))
+        # below the time labels so the red anchor line and the yellow band never cross it
+        y += 24
+        parts.append(text(10, y, "Position drift: none, the PR is never more than 1 step ahead or behind on any motor", 10, MUTED))
     if p:
         if p["anchor"]:
             x = ax.x(p["anchor"]["tick"])
