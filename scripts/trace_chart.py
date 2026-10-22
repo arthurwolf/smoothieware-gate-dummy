@@ -327,8 +327,8 @@ def _logic_rows(parts, y, p, ax):
                 path += f" H{ax.x(t):.1f} V{hi if sign > 0 else lo}"
             parts.append(f'<path d="{path} H{LEFT + PLOT_W}" fill="none" stroke="{colour}" stroke-width="1.3"/>')
             parts.append(text(LEFT + 3, lo - 1 if level > 0 else hi + 7, "high = forward" if level > 0 else "low = reverse", 8.5, MUTED, family=MONO))
-            if a[side + "_dir"]:
-                end_level = a[side + "_dir"][-1][1]
+            end_level = a[side + "_dir"][-1][1] if a[side + "_dir"] else level
+            if (end_level > 0) != (level > 0):
                 parts.append(text(LEFT + PLOT_W - 3, lo - 1 if end_level > 0 else hi + 7, "now forward" if end_level > 0 else "now reverse", 9, colour, anchor="end", weight="600", family=MONO))
         # connectors between matching pulses that moved, and the circle on the first difference
         if a["ref_i0"] == a["pr_i0"] and a["ref_total"] == a["pr_total"]:
