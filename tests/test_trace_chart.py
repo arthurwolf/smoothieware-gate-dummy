@@ -96,3 +96,11 @@ class DirDifferenceCircle(unittest.TestCase):
         entry = {"ref_dir": [[100, 1], [300, -1]], "pr_dir": [[100, 1], [350, -1]]}
         self.assertEqual(trace_chart._dir_difference_ticks(entry, 7), [300, 350])
         self.assertEqual(trace_chart._dir_difference_ticks({"ref_dir": [], "pr_dir": []}, 7), [7])
+
+
+class DirHeadline(unittest.TestCase):
+    def test_sign_flip_is_stated_in_plain_words(self):
+        p = {"tick_us": 10.0, "axes": [{"axis": 0, "ref_dir": [[100, -1]], "pr_dir": [[100, 1]]}]}
+        text = trace_chart._dir_headline(p, 0, {"tick": 100}, 10.0)
+        self.assertIn("goes low in the reference but high in this PR", text)
+        self.assertIn("opposite way", text)

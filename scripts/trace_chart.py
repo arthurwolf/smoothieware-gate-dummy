@@ -172,13 +172,35 @@ def _section_title(parts, y, title, note):
     parts.append(text(WIDTH - RIGHT, y, note, 10.5, MUTED, anchor="end"))
 
 
+def _dir_headline(p, axis, anchor, us):
+    """Plain-words sentence for a direction-signal difference: what each side does and what it means."""
+    entry = next((x for x in p["axes"] if int(x["axis"]) == axis), None)
+    when = f"around {anchor['tick'] * us / 1000:,.2f} ms"
+    if entry:
+        ref, pr = entry["ref_dir"], entry["pr_dir"]
+        for i in range(max(len(ref), len(pr))):
+            r, q = (ref[i] if i < len(ref) else None), (pr[i] if i < len(pr) else None)
+            if r == q:
+                continue
+            level = lambda c: "high" if c[1] > 0 else "low"
+            if r and q and r[1] != q[1]:
+                return (f"First difference: at {when}, motor {axis}'s direction signal goes {level(r)} in the reference but {level(q)} in this PR, "
+                        f"so the motor turns the opposite way (blue and orange lanes disagree).")
+            if r and q:
+                gap = abs(q[0] - r[0]) * us
+                return (f"First difference: motor {axis} reverses {gap:,.0f} µs {'later' if q[0] > r[0] else 'earlier'} in this PR than in the reference, {when}.")
+            return (f"First difference: at {when}, the direction signal of motor {axis} changes only in "
+                    f"{'the reference' if q is None else 'this PR'}, so the two sides turn the motor differently.")
+    return f"First difference: the direction signal of motor {axis} changes differently, {when}."
+
+
 def _headline(p, blocks_differ):
     a = p["anchor"] if p else None
     if not a:
         return "Pulse timing is the same within 4 ticks; the differences are in block planning figures (see the table)."
     axis, us = int(a["axis"]), p["tick_us"]
     if a["kind"] == "dir":
-        return f"First difference: the direction signal of motor {axis} changes differently, around {a['tick'] * us / 1000:,.2f} ms."
+        return _dir_headline(p, axis, a, us)
     if a["ref"] is None:
         return f"First difference: motor {axis} step {int(a['index']) + 1:,} fires only in this PR, at {a['pr'] * us / 1000:,.2f} ms (the reference stopped after {int(a['ref_count']):,} steps)."
     if a["pr"] is None:
@@ -327,7 +349,7 @@ def _table(parts, y, sample):
         for x, c in zip(cols, cells):
             parts.append(text(x + (88 if x == cols[0] else 0), y, c, 10, colour, weight=weight, family=MONO, anchor="end" if x == cols[0] else "start"))
     if p:
-        row(("motor", "steps ref", "steps PR", "difference", "first moved pulse"), MUTED, "600")
+        row(("motor", "steps ref", "steps PR", "step count", "first moved pulse"), MUTED, "600")
         for a in p["axes"]:
             diff = int(a["pr_total"]) - int(a["ref_total"])
             moved = "-"
