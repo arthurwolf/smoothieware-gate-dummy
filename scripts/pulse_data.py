@@ -122,7 +122,8 @@ def build(ref_result, pr_result):
                  "pr_speed": _binned(pp.get(a, []), edges, per_mm, tick_us),
                  "drift": [bisect_right(pp.get(a, []), e) - bisect_right(rp.get(a, []), e) for e in edges[1:]],
                  "ref_pulses": _in_window(rp.get(a, []), t0, t1), "pr_pulses": _in_window(pp.get(a, []), t0, t1),
-                 "ref_i0": bisect_left(rp.get(a, []), t0), "pr_i0": bisect_left(pp.get(a, []), t0)}
+                 "ref_i0": bisect_left(rp.get(a, []), t0), "pr_i0": bisect_left(pp.get(a, []), t0),
+                 "ref_dir_total": len(rd.get(a, [])), "pr_dir_total": len(pd.get(a, []))}
         for side, dirs in (("ref", rd), ("pr", pd)):
             seq = dirs.get(a, [])
             before = [s for t, s in seq if t < t0]

@@ -104,3 +104,10 @@ class DirHeadline(unittest.TestCase):
         text = trace_chart._dir_headline(p, 0, {"tick": 100}, 10.0)
         self.assertIn("goes low in the reference but high in this PR", text)
         self.assertIn("opposite way", text)
+
+
+class DirTotals(unittest.TestCase):
+    def test_non_numeric_direction_total_is_rejected(self):
+        ref = {"blocks": [], "steps_per_mm": [80.0]}
+        sample = {"pulses": {"axes": [{"axis": 0, "per_mm": 80.0, "ref_total": 1, "pr_total": 1, "ref_dir0": 0, "pr_dir0": 0, "ref_i0": 0, "pr_i0": 0, "ref_dir_total": "x", "pr_dir_total": 1}]}}
+        self.assertFalse(trace_chart.valid_sample(sample))

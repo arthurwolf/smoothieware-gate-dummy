@@ -92,7 +92,7 @@ def _valid_pulses(p):
                               ("axis", "tick", "ref", "pr", "index", "ref_count", "pr_count")) and a.get("kind") in ("pulse", "dir")):
         return False
     for ax in p["axes"]:
-        if not isinstance(ax, dict) or not all(_num(ax.get(k)) for k in ("axis", "per_mm", "ref_total", "pr_total", "ref_dir0", "pr_dir0", "ref_i0", "pr_i0")):
+        if not isinstance(ax, dict) or not all(_num(ax.get(k)) for k in ("axis", "per_mm", "ref_total", "pr_total", "ref_dir0", "pr_dir0", "ref_i0", "pr_i0")) or not all(_num(ax.get(k, 0)) for k in ("ref_dir_total", "pr_dir_total")):
             return False
         if not all(_nums(ax.get(k), BINS) and len(ax[k]) == BINS for k in ("ref_speed", "pr_speed", "drift")):
             return False
@@ -227,7 +227,7 @@ def _wrap(s, width):
 
 
 def _block_strip(parts, y, blocks, ax):
-    _panel(parts, y, 40, "Planner blocks", "one cell = one block")
+    _panel(parts, y, 40, "Planned moves", "one cell = one move")
     for lane, key, colour in ((0, "r", BLUE), (1, "p", ORANGE)):
         top = y + 4 + lane * 17
         parts.append(text(LEFT + 3, top + 10.5, "reference" if lane == 0 else "this PR", 8.5, MUTED))
@@ -313,7 +313,7 @@ def _logic_rows(parts, y, p, ax):
             for t, sign in a[side + "_dir"]:
                 path += f" H{ax.x(t):.1f} V{hi if sign > 0 else lo}"
             parts.append(f'<path d="{path} H{LEFT + PLOT_W}" fill="none" stroke="{colour}" stroke-width="1.3"/>')
-            parts.append(text(LEFT + 3, lo - 1 if level > 0 else hi + 7, "high" if level > 0 else "low", 7.5, MUTED, family=MONO))
+            parts.append(text(LEFT + 3, lo - 1 if level > 0 else hi + 7, "high = forward" if level > 0 else "low = reverse", 8.5, MUTED, family=MONO))
         # connectors between matching pulses that moved, and the circle on the first difference
         if a["ref_i0"] == a["pr_i0"] and a["ref_total"] == a["pr_total"]:
             for r, q in zip(a["ref_pulses"], a["pr_pulses"]):
@@ -342,24 +342,27 @@ def _table(parts, y, sample):
     p = sample["pulses"]
     parts.append(text(10, y, "In numbers", 13, TEXT, weight="600"))
     y += 8
-    cols = (LEFT - 96, LEFT + 30, LEFT + 120, LEFT + 205, LEFT + 335)
+    cols = (LEFT - 96, LEFT + 30, LEFT + 120, LEFT + 205, LEFT + 305, LEFT + 430)
     def row(cells, colour=TEXT, weight="normal", fills=None):
         nonlocal y
         y += 14
         for x, c in zip(cols, cells):
             parts.append(text(x + (88 if x == cols[0] else 0), y, c, 10, colour, weight=weight, family=MONO, anchor="end" if x == cols[0] else "start"))
     if p:
-        row(("motor", "steps ref", "steps PR", "step count", "first moved pulse"), MUTED, "600")
+        row(("motor", "steps ref", "steps PR", "step count", "first moved pulse", "direction changes ref → PR"), MUTED, "600")
         for a in p["axes"]:
             diff = int(a["pr_total"]) - int(a["ref_total"])
             moved = "-"
             an = p["anchor"]
             if an and int(an["axis"]) == int(a["axis"]) and an["kind"] == "pulse":
                 moved = f"#{int(an['index']) + 1:,}" + (f" {(an['pr'] - an['ref']) * p['tick_us']:+,.0f} µs" if an["ref"] is not None and an["pr"] is not None and a["ref_total"] == a["pr_total"] else " (counts differ)")
-            row((f"{int(a['axis'])}", f"{int(a['ref_total']):,}", f"{int(a['pr_total']):,}", f"{diff:+,d}" if diff else "same", moved), RED if diff else TEXT)
+            rd, pd = int(a.get("ref_dir_total", 0)), int(a.get("pr_dir_total", 0))
+            dir_differs = bool(an and an["kind"] == "dir" and int(an["axis"]) == int(a["axis"])) or rd != pd
+            row((f"{int(a['axis'])}", f"{int(a['ref_total']):,}", f"{int(a['pr_total']):,}", f"{diff:+,d}" if diff else "same", moved,
+                 f"{rd:,} → {pd:,}" + (" differ" if dir_differs else " same")), RED if (diff or dir_differs) else TEXT)
         y += 6
     if sample["rows"]:
-        row(("worst blocks", "start ref", "start PR", "ticks ref → PR", "exit mm/s ref → PR"), MUTED, "600")
+        row(("worst moves", "start ref", "start PR", "ticks ref → PR", "exit mm/s ref → PR"), MUTED, "600")
         for r in sample["rows"]:
             e, q = r["r"], r["p"]
             label = f"#{(e or q)[6]}"
@@ -376,7 +379,7 @@ def draw_case(name, sample):
         return None
     p = sample["pulses"]
     parts = [text(10, 24, name, 14, TEXT, weight="600", family=MONO),
-             text(WIDTH - RIGHT, 24, f"{sample['differing']:,} of {sample['total']:,} planner blocks differ", 12, MUTED, anchor="end")]
+             text(WIDTH - RIGHT, 24, f"{sample['differing']:,} of {sample['total']:,} planned moves differ", 12, MUTED, anchor="end")]
     y = 38
     if p:
         for line in _wrap(_headline(p, sample["differing"]), 108):
@@ -421,7 +424,7 @@ def draw_case(name, sample):
         y += 28
     y = _table(parts, y, sample)
     legend = y + 4
-    items = [(BLUE, "reference (base firmware)"), (ORANGE, "this pull request"), (RED, "difference"), ("#d29922", "zoom region"), (FAINT, "block that matches")]
+    items = [(BLUE, "reference (base firmware)"), (ORANGE, "this pull request"), (RED, "difference"), ("#d29922", "zoom region"), (FAINT, "move that matches")]
     x = 10
     for colour, label in items:
         parts.append(rect(x, legend, 11, 11, colour, rx=2))
