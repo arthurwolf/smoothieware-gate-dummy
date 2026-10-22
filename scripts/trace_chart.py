@@ -208,7 +208,7 @@ def _flip(p):
 
 
 def _verdict(p):
-    """One short bold line for a direction sign flip (the case that moves a motor the wrong way), else None."""
+    """One short bold line for a direction sign flip (the case that turns a motor the opposite way), else None."""
     a = p["anchor"]
     if not a or a["kind"] != "dir":
         return None
@@ -220,7 +220,7 @@ def _verdict(p):
     for i in range(min(len(ref), len(pr))):
         if ref[i] != pr[i]:
             if ref[i][1] != pr[i][1]:
-                return f"Motor {axis} moves the wrong way from {min(ref[i][0], pr[i][0]) * p['tick_us'] / 1000:,.1f} ms"
+                return f"Motor {axis} turns the opposite way from {min(ref[i][0], pr[i][0]) * p['tick_us'] / 1000:,.1f} ms"
             return None
     return None
 
