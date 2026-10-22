@@ -270,6 +270,9 @@ def _speed_rows(parts, y, p, ax):
         parts.append(_line(pts(a["ref_speed"]), BLUE, 2.6))
         parts.append(_line(pts(a["pr_speed"]), ORANGE, 1.4))
         parts.append(text(LEFT - 8, y + 37, f"max {_fmt(peak)}", 9.5, MUTED, anchor="end", family=MONO))
+        if all(abs(r - q) <= 0.5 for r, q in zip(a["ref_speed"], a["pr_speed"])):
+            # the curves coincide, so say so instead of leaving the reader to wonder whether one is missing
+            parts.append(text(LEFT + PLOT_W - 4, y + 11, "same speed in reference and PR", 9.5, TEXT, anchor="end"))
         y += h + 4
     return y
 
