@@ -182,10 +182,10 @@ def _dir_headline(p, axis, anchor, us):
             r, q = (ref[i] if i < len(ref) else None), (pr[i] if i < len(pr) else None)
             if r == q:
                 continue
-            level = lambda c: "high" if c[1] > 0 else "low"
+            word = lambda c: "forward" if c[1] > 0 else "reverse"
             if r and q and r[1] != q[1]:
-                return (f"First difference: at {when}, motor {axis}'s direction signal goes {level(r)} in the reference but {level(q)} in this PR, "
-                        f"so the motor turns the opposite way (blue and orange lanes disagree).")
+                return (f"First difference: at {when}, the reference turns motor {axis} {word(r)} but this PR turns it {word(q)}, "
+                        f"so the motor moves the opposite way (the DIR lanes below disagree).")
             if r and q:
                 gap = abs(q[0] - r[0]) * us
                 return (f"First difference: motor {axis} reverses {gap:,.0f} µs {'later' if q[0] > r[0] else 'earlier'} in this PR than in the reference, {when}.")

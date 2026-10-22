@@ -102,7 +102,7 @@ class DirHeadline(unittest.TestCase):
     def test_sign_flip_is_stated_in_plain_words(self):
         p = {"tick_us": 10.0, "axes": [{"axis": 0, "ref_dir": [[100, -1]], "pr_dir": [[100, 1]]}]}
         text = trace_chart._dir_headline(p, 0, {"tick": 100}, 10.0)
-        self.assertIn("goes low in the reference but high in this PR", text)
+        self.assertIn("the reference turns motor 0 reverse but this PR turns it forward", text)
         self.assertIn("opposite way", text)
 
 
