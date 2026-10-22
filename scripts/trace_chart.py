@@ -5,7 +5,7 @@ differ, and (when both simulators ran with full step lists) the pulse data from 
 that into one dark SVG with a single shared time axis per section:
 
   whole case   planner blocks, speed per axis (mm/s), position drift (steps the pull request is ahead or behind)
-  zoom         logic-analyzer lanes (STEP and DIR, reference above this pull request) around the first difference
+  zoom         logic-analyzer lanes (steps and direction, reference above this pull request) around the first difference
   numbers      steps, first moved pulse and the differing blocks in figures
 
 The sample is the only thing that travels from the untrusted build job to the trusted comment job, so valid_sample()
@@ -185,7 +185,7 @@ def _dir_headline(p, axis, anchor, us):
             word = lambda c: "forward" if c[1] > 0 else "reverse"
             if r and q and r[1] != q[1]:
                 return (f"First difference: at {when}, the reference turns motor {axis} {word(r)} but this PR turns it {word(q)}, "
-                        f"so the motor moves the opposite way (the DIR lanes below disagree).")
+                        f"so the motor moves the opposite way (the direction lanes below disagree).")
             if r and q:
                 gap = abs(q[0] - r[0]) * us
                 return (f"First difference: motor {axis} reverses {gap:,.0f} µs {'later' if q[0] > r[0] else 'earlier'} in this PR than in the reference, {when}.")
@@ -305,7 +305,7 @@ def _logic_rows(parts, y, p, ax):
         group_h = lane_h * 4 + 6
         parts.append(text(LEFT - 8, y + 10, f"Motor {int(a['axis'])}", 11, TEXT, anchor="end", weight="600"))
         y += 14
-        for n, (side, colour, name) in enumerate((("ref", BLUE, "STEP reference"), ("pr", ORANGE, "STEP this PR"))):
+        for n, (side, colour, name) in enumerate((("ref", BLUE, "steps: reference"), ("pr", ORANGE, "steps: this PR"))):
             ly = y + n * lane_h
             parts.append(f'<rect x="{LEFT}" y="{ly}" width="{PLOT_W}" height="{lane_h - 2}" fill="{TRACK}" opacity="0.55"/>')
             parts.append(text(LEFT - 8, ly + 10, name, 8.5, MUTED, anchor="end"))
@@ -315,7 +315,7 @@ def _logic_rows(parts, y, p, ax):
                 x = ax.x(t)
                 path += f" H{x:.1f} V{high} h1.6 V{base}"
             parts.append(f'<path d="{path} H{LEFT + PLOT_W}" fill="none" stroke="{colour}" stroke-width="1.3"/>')
-        for n, (side, colour, name) in enumerate((("ref", BLUE, "DIR reference"), ("pr", ORANGE, "DIR this PR"))):
+        for n, (side, colour, name) in enumerate((("ref", BLUE, "direction: reference"), ("pr", ORANGE, "direction: this PR"))):
             ly = y + (2 + n) * lane_h
             parts.append(f'<rect x="{LEFT}" y="{ly}" width="{PLOT_W}" height="{lane_h - 2}" fill="{TRACK}" opacity="0.55"/>')
             parts.append(text(LEFT - 8, ly + 10, name, 8.5, MUTED, anchor="end"))
@@ -356,11 +356,11 @@ def _table(parts, y, sample):
     parts.append(text(10, y, "In numbers", 13, TEXT, weight="600"))
     y += 8
     cols = (LEFT - 96, LEFT + 30, LEFT + 120, LEFT + 205, LEFT + 305, LEFT + 430)
-    def row(cells, colour=TEXT, weight="normal", fills=None):
+    def row(cells, colour=TEXT, weight="normal", fills=None, cell_colours=None):
         nonlocal y
         y += 14
-        for x, c in zip(cols, cells):
-            parts.append(text(x + (88 if x == cols[0] else 0), y, c, 10, colour, weight=weight, family=MONO, anchor="end" if x == cols[0] else "start"))
+        for n, (x, c) in enumerate(zip(cols, cells)):
+            parts.append(text(x + (88 if x == cols[0] else 0), y, c, 10, (cell_colours or {}).get(n, colour), weight=weight, family=MONO, anchor="end" if x == cols[0] else "start"))
     if p:
         row(("motor", "steps ref", "steps PR", "step count", "first moved pulse", "direction changes ref → PR"), MUTED, "600")
         for a in p["axes"]:
@@ -372,15 +372,16 @@ def _table(parts, y, sample):
             rd, pd = int(a.get("ref_dir_total", 0)), int(a.get("pr_dir_total", 0))
             dir_differs = bool(an and an["kind"] == "dir" and int(an["axis"]) == int(a["axis"])) or rd != pd
             row((f"{int(a['axis'])}", f"{int(a['ref_total']):,}", f"{int(a['pr_total']):,}", f"{diff:+,d}" if diff else "same", moved,
-                 f"{rd:,} → {pd:,}" + (" (signs or timing differ)" if dir_differs else " same")), RED if (diff or dir_differs) else TEXT)
+                 f"{rd:,} → {pd:,}" + (" (signs or timing differ)" if dir_differs else " same")), TEXT,
+                cell_colours={**({3: RED} if diff else {}), **({5: RED} if dir_differs else {})})
         y += 6
     if sample["rows"]:
-        row(("worst moves", "start ref", "start PR", "ticks ref → PR", "exit mm/s ref → PR"), MUTED, "600")
+        row(("worst moves", "start ref", "start PR", "ms ref → PR", "exit mm/s ref → PR"), MUTED, "600")
         for r in sample["rows"]:
             e, q = r["r"], r["p"]
             label = f"#{(e or q)[6]}"
             if e and q:
-                row((label, f"{e[0]:,}", f"{q[0]:,}", f"{e[1]:,} → {q[1]:,}", f"{e[3]:g} → {q[3]:g}"))
+                row((label, f"{e[0]:,}", f"{q[0]:,}", f"{e[1] * p['tick_us'] / 1000:,.1f} → {q[1] * p['tick_us'] / 1000:,.1f}" if p else f"{e[1]:,} → {q[1]:,}", f"{e[3]:g} → {q[3]:g}"))
             else:
                 row((label, "-", "-", "block exists only in the " + ("reference" if e else "PR"), ""), RED)
     return y + 10
@@ -404,13 +405,14 @@ def draw_case(name, sample):
             parts.append(text(10, y, line, 11.5, MUTED))
     y += 14
     blocks = sample["blocks"]
+    drift_note = None
     last = max([b[k][0] + b[k][1] for b in blocks for k in ("r", "p") if b[k]] + [1])
     ax = _Axis(0, p["end"] if p else last, p["tick_us"] if p else 10)
     if p:
         # the zoom comes first: it is the evidence for the headline sentence
         zoom = _Axis(p["t0"], p["t1"], p["tick_us"])
         span_us = (p["t1"] - p["t0"]) * p["tick_us"]
-        _section_title(parts, y + 8, "Zoom on the first difference", f"{span_us / 1000:,.2f} ms wide; STEP pulse width not to scale")
+        _section_title(parts, y + 8, "Zoom on the first difference", f"{span_us / 1000:,.2f} ms wide; step pulse width not to scale")
         y += 20
         z_top = y
         y = _logic_rows(parts, y, p, zoom)
@@ -428,9 +430,12 @@ def draw_case(name, sample):
             y += 14
             y = _drift_rows(parts, y, p, ax)
         else:
-            parts.append(text(10, y + 12, "Position drift: none, the PR is never more than 1 step ahead or behind on any motor", 10, MUTED))
+            drift_note = y + 12
             y += 18
     ax.grid(sec_top, y, parts, labels_at=y + 11)
+    if p and drift_note:
+        parts.append(rect(8, drift_note - 10, 440, 14, BG))
+        parts.append(text(10, drift_note, "Position drift: none, the PR is never more than 1 step ahead or behind on any motor", 10, MUTED))
     if p:
         if p["anchor"]:
             x = ax.x(p["anchor"]["tick"])
