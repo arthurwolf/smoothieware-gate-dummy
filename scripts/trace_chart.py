@@ -303,6 +303,12 @@ def _logic_rows(parts, y, p, ax):
     for a in p["axes"]:
         lane_h = 15
         group_h = lane_h * 4 + 6
+        if anchor and int(a["axis"]) not in [int(d) for d in p.get("differing_axes", [])] and len(p["axes"]) > 1:
+            # an identical axis is one line, not four lanes of matching noise (its pulses are in the numbers table)
+            parts.append(text(LEFT - 8, y + 12, f"Motor {int(a['axis'])}", 11, TEXT, anchor="end", weight="600"))
+            parts.append(text(LEFT, y + 12, "identical in the reference and this PR: same steps, same direction signal", 10, MUTED))
+            y += 22
+            continue
         parts.append(text(LEFT - 8, y + 10, f"Motor {int(a['axis'])}", 11, TEXT, anchor="end", weight="600"))
         y += 14
         for n, (side, colour, name) in enumerate((("ref", BLUE, "steps: reference"), ("pr", ORANGE, "steps: this PR"))):
@@ -345,7 +351,7 @@ def _logic_rows(parts, y, p, ax):
             rx = max((x1 - x0) / 2 + 9, 11)
             parts.append(f'<ellipse cx="{cx:.1f}" cy="{cy}" rx="{rx:.1f}" ry="{lane_h + 3}" fill="none" stroke="{RED}" stroke-width="1.8"/>')
             if on_dir:
-                parts.append(text(f"{min(max(cx, LEFT + 130), WIDTH - RIGHT - 130):.1f}", note_y, _dir_note(a), 10.5, RED, anchor="middle", weight="600", family=MONO))
+                parts.append(text(f"{min(max(cx, LEFT + 160), WIDTH - RIGHT - 130):.1f}", note_y, _dir_note(a), 10.5, RED, anchor="middle", weight="600", family=MONO))
             if anchor["kind"] == "pulse" and anchor["ref"] is not None and anchor["pr"] is not None:
                 note = f"{(anchor['pr'] - anchor['ref']) * us:+,.0f} µs"
                 right = cx + rx + 4 + 60 < WIDTH
