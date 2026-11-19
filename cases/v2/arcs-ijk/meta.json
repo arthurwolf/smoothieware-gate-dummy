@@ -1,0 +1,15 @@
+{
+  "name": "v2-arcs-ijk",
+  "covers": "arcs ijk",
+  "sim_args": [],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Claude independent analytical review (scripted kinematic model; not physical-board)",
+  "review": "Independent checks against the commanded G-code, not the simulator: radii and sweep direction of all 230 arc blocks within 0.008 mm; per-move durations of the five moves against a trapezoid model (100 mm/s^2, F3000 = 50 mm/s) using the recorded boundary speeds and exact arc lengths (10, 47.12, 47.12, 62.83, 47.12 mm) differ by 0.02%, 0.01%, -0.54%, -0.02%, 0.04%. Known anomaly: block 105 (line 5) lasts 0.0473 s where the model needs 0.0554 s (decel 117 mm/s^2, over the 100 limit); the reference records current V2 behaviour including it, and a fix would legitimately change the reference. Two simulator runs gave identical traces. Not a physical-board measurement.",
+  "forbidden_serial_contains": [
+    "Error:",
+    "ALARM:"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "v2-tool-change",
+  "sim_args": [
+    "--modules"
+  ],
+  "forbidden_serial_contains": [
+    "Error:",
+    "ALARM:"
+  ],
+  "simulator_variant": "five-actuators",
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical review",
+  "review": "At 80 XYZ steps/mm and 100 extruder steps/mm, the three moves require X steps +800, +800 and -1600; T0, T1 and T0 route one 100-step extrusion to the corresponding configured motor, ending at (0,0,0,200,100). The source waits for an empty conveyor when selecting a different extruder, consistent with zero entry and exit speed for each move. At 100 mm/s^2, continuous zero-to-zero triangular profiles give 0.63246, 0.63246 and 0.89443 s versus 0.62968, 0.62968 and 0.89061 s recorded, within 0.44%. The five-actuator host simulator reproduced this case; it does not validate physical tool changes or extrusion."
+}

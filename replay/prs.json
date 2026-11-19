@@ -1,0 +1,15 @@
+{
+ "repo": "Smoothieware/Smoothieware",
+ "note": "bad = rejected or objected to by the maintainer for the stated reason (evidence: smoothie-sim cases/pr-replay/evidence.json); good = merged into edge. A finding on a good PR counts as a false positive unless it names a real defect (judged by hand, see documentation/ai-review.md).",
+ "bad": [
+  {"pr": 564, "expect": ["general", "idle-starvation", "blocking-wait"], "why": "blocking ADC read (maintainer objection, not a wait call)"},
+  {"pr": 620, "expect": ["blocking-wait", "idle-starvation"], "why": "wait_ms(250) in ZProbe"},
+  {"pr": 633, "expect": ["blocking-wait", "busy-loop"], "why": "wait_us and us_ticker_read loops in Iremitter"},
+  {"pr": 955, "expect": ["blocking-wait", "idle-starvation"], "why": "wait_us in SoftSerial_tx.cpp"},
+  {"pr": 1219, "expect": ["blocking-wait"], "why": "wait_us(1) in Max6675"},
+  {"pr": 1227, "expect": ["blocking-wait"], "why": "wait() in StepperMotor enable delay"},
+  {"pr": 1447, "expect": ["blocking-wait", "safe-delay"], "why": "wait/safe_delay in the TMC2208/9 driver"},
+  {"pr": 1488, "expect": ["blocking-wait"], "why": "wait() in software SPI"}
+ ],
+ "good": [1546, 1547, 1518, 1516, 1490, 1485, 1483, 1469, 1464, 1455, 1451, 1444, 1436, 1433, 1405]
+}

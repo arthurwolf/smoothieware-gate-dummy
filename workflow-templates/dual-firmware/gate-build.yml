@@ -1,0 +1,193 @@
+name: gate-build
+run-name: Smoothie gate PR ${{ inputs.pr_number }}
+
+# Installation candidate. Its numeric workflow ID/path must match GATE_POLICY_JSON.
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to authenticate through GitHub
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      GATE_REF: ${{ vars.GATE_REF }}
+      SIM_REF: ${{ vars.SIM_REF }}
+      POLICY_JSON: ${{ vars.GATE_POLICY_JSON }}
+      TARGET_REPOSITORY: ${{ github.repository }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_ATTEMPT: ${{ github.run_attempt }}
+    steps:
+      - name: Require exact trusted checkout pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GATE_REF" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]]
+          [[ "$SIM_REF" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]]
+          TASK_ROOT="$RUNNER_TEMP/gate-worker"
+          printf 'TASK_ROOT=%s\n' "$TASK_ROOT" >> "$GITHUB_ENV"
+          mkdir "$TASK_ROOT"
+          printf '%s' "$POLICY_JSON" > "$TASK_ROOT/policy.json"
+          printf 'Host image OS=%s version=%s\n' "${ImageOS:-unknown}" "${ImageVersion:-unknown}"
+
+      - name: Check out trusted gate code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ vars.GATE_REPO }}
+          ref: ${{ vars.GATE_REF }}
+          path: gate
+          persist-credentials: false
+
+      - name: Authenticate execution and select bounded source identities
+        id: identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 -B -I gate/scripts/github_config.py \
+            --policy "$TASK_ROOT/policy.json" --controller "$GITHUB_WORKSPACE/gate" \
+            --repository "$TARGET_REPOSITORY" --gate-ref "$GATE_REF" --sim-ref "$SIM_REF" \
+            --out "$TASK_ROOT/config.json"
+          python3 -B -I gate/scripts/github_worker.py prepare \
+            --policy "$TASK_ROOT/policy.json" --run-id "$RUN_ID" --attempt "$RUN_ATTEMPT" \
+            --out "$TASK_ROOT/execution.json"
+          python3 -B -I - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['TASK_ROOT'])
+          execution = json.loads((root/'execution.json').read_text())
+          config = json.loads((root/'config.json').read_text())
+          values = {key: execution[key] for key in ('base_repository', 'head_repository')}
+          values.update({key: execution['binding'][key] for key in ('base', 'head')})
+          values.update({key: config[key] or '' for key in ('shared_library_ref', 'profile', 'toolchain')})
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as handle:
+              for key, value in values.items():
+                  if not isinstance(value, str) or '\n' in value or '\r' in value:
+                      raise ValueError('invalid authenticated workflow output')
+                  handle.write(key + '=' + value + '\n')
+          PY
+
+      - name: Read base objects without persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ steps.identity.outputs.base_repository }}
+          ref: ${{ steps.identity.outputs.base }}
+          path: base-objects
+          persist-credentials: false
+
+      - name: Read head objects without persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ steps.identity.outputs.head_repository }}
+          ref: ${{ steps.identity.outputs.head }}
+          path: head-objects
+          persist-credentials: false
+
+      - name: Check out pinned simulator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ vars.SIM_REPO }}
+          ref: ${{ vars.SIM_REF }}
+          path: sim
+          persist-credentials: false
+
+      - name: Check out pinned V2 simulator library
+        if: steps.identity.outputs.profile == 'v2-prime'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ vars.SIM_LIBRARY_REPO }}
+          ref: ${{ steps.identity.outputs.shared_library_ref }}
+          path: lib-smoothie
+          persist-credentials: false
+
+      - name: Export committed sources and retain trusted inputs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FIRMWARE_PROFILE: ${{ steps.identity.outputs.profile }}
+          TOOLCHAIN: ${{ steps.identity.outputs.toolchain }}
+          BASE_SHA: ${{ steps.identity.outputs.base }}
+          HEAD_SHA: ${{ steps.identity.outputs.head }}
+        run: |
+          set -euo pipefail
+          export GIT_ALTERNATE_OBJECT_DIRECTORIES="$GITHUB_WORKSPACE/base-objects/.git/objects"
+          python3 -B -I gate/scripts/ci_sources.py \
+            --policy "$TASK_ROOT/policy.json" --execution "$TASK_ROOT/execution.json" \
+            --base-repository "$GITHUB_WORKSPACE/base-objects" --head-repository "$GITHUB_WORKSPACE/head-objects" \
+            --out "$TASK_ROOT/sources"
+          unset GIT_ALTERNATE_OBJECT_DIRECTORIES
+          python3 -B -I gate/scripts/make_manifest.py \
+            --profile "$FIRMWARE_PROFILE" --base "$BASE_SHA" --head "$HEAD_SHA" --toolchain "$TOOLCHAIN" \
+            --sim-dir "$GITHUB_WORKSPACE/sim" --cases "$GITHUB_WORKSPACE/gate/cases" \
+            --inputs "$TASK_ROOT/inputs" --out "$TASK_ROOT/local-manifest.json"
+          python3 -B -I gate/scripts/github_worker.py manifest \
+            --policy "$TASK_ROOT/policy.json" --execution "$TASK_ROOT/execution.json" \
+            --manifest "$TASK_ROOT/local-manifest.json" --out "$TASK_ROOT/manifest.json"
+
+      - name: Download bounded compiler archive and pull digest-pinned runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          compiler_url=$(python3 -B -I -c 'import json,os; print(json.load(open(os.environ["TASK_ROOT"]+"/config.json"))["toolchain_url"])')
+          runtime_image=$(python3 -B -I -c 'import json,os; print(json.load(open(os.environ["TASK_ROOT"]+"/config.json"))["runtime_image"])')
+          curl --fail --location --proto '=https' --proto-redir '=https' --max-time 300 \
+            --max-filesize 268435456 --output "$TASK_ROOT/compiler.tar.bz2" "$compiler_url"
+          /usr/bin/docker --host unix:///var/run/docker.sock pull "$runtime_image"
+
+      - name: Execute isolated checks and retain the actual verdict
+        id: checks
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          code=0
+          python3 -B -I gate/scripts/ci_worker.py \
+            --policy "$TASK_ROOT/policy.json" --execution "$TASK_ROOT/execution.json" \
+            --manifest "$TASK_ROOT/manifest.json" --inputs "$TASK_ROOT/inputs" \
+            --archive "$TASK_ROOT/compiler.tar.bz2" --base-tree "$TASK_ROOT/sources/base" \
+            --pr-tree "$TASK_ROOT/sources/pr" --diff "$TASK_ROOT/sources/diff.patch" --out "$TASK_ROOT/run" \
+            > "$TASK_ROOT/worker.jsonl" || code=$?
+          cat "$TASK_ROOT/worker.jsonl"
+          printf 'code=%s\n' "$code" >> "$GITHUB_OUTPUT"
+          python3 -B -I - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['TASK_ROOT'])
+          events = [json.loads(line) for line in (root/'worker.jsonl').read_text().splitlines()]
+          final = events[-1] if events else {}
+          ready = final.get('type') == 'result' and final.get('artifact') == str(root/'run/artifact')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as handle:
+              handle.write('ready=' + str(ready).lower() + '\n')
+          PY
+
+      - name: Upload current validated report data only
+        if: steps.checks.outputs.ready == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/gate-worker/run/artifact/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Apply the actual check conclusion
+        if: always()
+        shell: bash
+        env:
+          CHECK_CODE: ${{ steps.checks.outputs.code }}
+          ARTIFACT_READY: ${{ steps.checks.outputs.ready }}
+        run: |
+          [[ "$ARTIFACT_READY" == true ]] || exit 2
+          case "$CHECK_CODE" in
+            0|1|2) exit "$CHECK_CODE" ;;
+            *) exit 2 ;;
+          esac

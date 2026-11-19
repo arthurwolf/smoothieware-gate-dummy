@@ -1,0 +1,29 @@
+# step-trace 1
+# actuators 3 steps_per_mm 80 80 80
+# final_steps 0 240 0
+# initial_steps 0 0 0
+# step_period_us 10.0
+B 0 line=5 steps=1600,0,0 counts=1600,0,0 dir=0 dirs=0,0,0 changes=0:+ start=0 ticks=86086 entry=0 exit=3.474
+B 1 line=6 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=86085 ticks=5229 entry=3.474 exit=3.474
+B 2 line=7 steps=1600,0,0 counts=1600,0,0 dir=1 dirs=1,0,0 changes=0:- start=91313 ticks=82750 entry=3.474 exit=3.474
+B 3 line=8 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=174062 ticks=5229 entry=3.474 exit=3.474
+B 4 line=9 steps=1600,0,0 counts=1600,0,0 dir=0 dirs=0,0,0 changes=0:+ start=179290 ticks=82750 entry=3.474 exit=3.474
+B 5 line=10 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=262039 ticks=5229 entry=3.474 exit=3.474
+B 6 line=11 steps=1600,0,0 counts=1600,0,0 dir=1 dirs=1,0,0 changes=0:- start=267267 ticks=82750 entry=3.474 exit=3.474
+B 7 line=12 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=350016 ticks=5229 entry=3.474 exit=3.474
+B 8 line=13 steps=1600,0,0 counts=1600,0,0 dir=0 dirs=0,0,0 changes=0:+ start=355244 ticks=82750 entry=3.474 exit=3.474
+B 9 line=14 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=437993 ticks=5229 entry=3.474 exit=3.474
+B 10 line=15 steps=1600,0,0 counts=1600,0,0 dir=1 dirs=1,0,0 changes=0:- start=443221 ticks=82750 entry=3.474 exit=3.474
+B 11 line=16 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=525970 ticks=5229 entry=3.474 exit=3.474
+B 12 line=17 steps=1600,0,0 counts=1600,0,0 dir=0 dirs=0,0,0 changes=0:+ start=531198 ticks=82750 entry=3.474 exit=3.474
+B 13 line=18 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=613947 ticks=5229 entry=3.474 exit=3.474
+B 14 line=19 steps=1600,0,0 counts=1600,0,0 dir=1 dirs=1,0,0 changes=0:- start=619175 ticks=82750 entry=3.474 exit=3.474
+B 15 line=20 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=701924 ticks=5229 entry=3.474 exit=3.474
+B 16 line=21 steps=1600,0,0 counts=1600,0,0 dir=0 dirs=0,0,0 changes=0:+ start=707152 ticks=82750 entry=3.474 exit=3.474
+B 17 line=22 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=789901 ticks=5229 entry=3.474 exit=3.474
+B 18 line=23 steps=1600,0,0 counts=1600,0,0 dir=1 dirs=1,0,0 changes=0:- start=795129 ticks=82750 entry=3.474 exit=3.474
+B 19 line=24 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=877878 ticks=5229 entry=3.474 exit=3.474
+B 20 line=25 steps=1600,0,0 counts=1600,0,0 dir=0 dirs=0,0,0 changes=0:+ start=883106 ticks=82750 entry=3.474 exit=3.474
+B 21 line=26 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=965855 ticks=5229 entry=3.474 exit=3.474
+B 22 line=27 steps=1600,0,0 counts=1600,0,0 dir=1 dirs=1,0,0 changes=0:- start=971083 ticks=82750 entry=3.474 exit=3.474
+B 23 line=28 steps=0,20,0 counts=0,20,0 dir=0 dirs=0,0,0 changes=1:+ start=1053832 ticks=7580 entry=3.474 exit=0

@@ -1,0 +1,29 @@
+# SmoothieV2 INI configuration, based on smoothie-sim's Cartesian V2 example.
+[motion control]
+arm_solution = cartesian
+default_acceleration = 100
+
+[actuator]
+alpha.step_pin = PA0
+alpha.dir_pin = PA1
+alpha.steps_per_mm = 80
+beta.step_pin = PB0
+beta.dir_pin = PB1
+beta.steps_per_mm = 80
+gamma.step_pin = PC0
+gamma.dir_pin = PC1
+gamma.steps_per_mm = 80
+
+[temperature control]
+hotend.enable = true
+hotend.tool_id = 0
+hotend.heater_pin = PD0
+hotend.thermistor_pin = ADC1_0
+hotend.max_temp = 300
+
+[switch]
+spindle.enable = true
+spindle.output_pin = PWM1_1
+spindle.output_type = hwpwm
+spindle.input_on_command = M3
+spindle.input_off_command = M5

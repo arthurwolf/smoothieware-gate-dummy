@@ -1,0 +1,17 @@
+{
+  "name": "v2-probing-no-trigger",
+  "covers": "probing no trigger",
+  "sim_args": [
+    "--modules"
+  ],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical/source review",
+  "review": "The commands and configured 1 mm probe travel predict the recorded Z+10, Z-1, Z+1, XY+10/+10 and Z-5 moves. ZProbe.cpp returns to the start after an untriggered G30, then reports and halts on an untriggered G38.2; both messages are required. Independent tick-rounded calculations reproduce the four subsequent move durations exactly and the initial move within 98 ticks (0.048%); the initial difference remains subject to floating-point rounding. Both firmware revisions reproduced the trace and alarms. Physical probing and board timing remain unverified.",
+  "expected_serial_contains": [
+    "ZProbe not triggered",
+    "ALARM: Probe fail"
+  ]
+}

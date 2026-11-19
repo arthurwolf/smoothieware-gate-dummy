@@ -1,0 +1,16 @@
+{
+  "name": "v2-cartesian-mill-pocket",
+  "sim_args": [
+    "--modules"
+  ],
+  "forbidden_serial_contains": [
+    "Error:",
+    "ALARM:"
+  ],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical review",
+  "review": "At 80 steps/mm, the nine moves produce the recorded 400-step initial Z rise, 800-step XY diagonal, 480-step Z descent, four 1600-step pocket sides, 480-step Z rise and 800-step XY return, ending at (0,0,400). With 100 mm/s^2 acceleration, the 5 mm/s default Z cap, the 100 mm/min Z feed and 600 mm/min pocket feed, continuous motion durations match each recorded block within 0.45%, using the source-defined 90-degree junction speed of 3.474 mm/s and the slower Z feed at the relevant junction. This reviews the motion trace only; the simulator case does not assert spindle output and cannot validate physical cutting or timing."
+}

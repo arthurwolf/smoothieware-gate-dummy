@@ -1,0 +1,8 @@
+{
+ "name": "workspaces",
+ "covers": "G54/G55 work coordinate systems and G53 machine moves",
+ "why": "Offsets shift target positions only; steps follow the offsets.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

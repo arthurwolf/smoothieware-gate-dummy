@@ -1,0 +1,8 @@
+{
+ "name": "cartesian-print-square",
+ "covers": "Cartesian XY moves with extrusion and a fan",
+ "why": "Baseline 3D-printer behaviour: acceleration, corner junctions and E synchronised to XY.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

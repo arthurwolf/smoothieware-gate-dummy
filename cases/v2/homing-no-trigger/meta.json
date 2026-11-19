@@ -1,0 +1,16 @@
+{
+  "name": "v2-homing-no-trigger",
+  "covers": "homing no trigger",
+  "sim_args": [
+    "--modules"
+  ],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical/source review",
+  "review": "The configured X homing direction and 1 mm travel predict -80 steps at 80 steps/mm. Endstops.cpp commands that limit, broadcasts halt if the endstop did not trigger, and emits the required homing failure message. Independent tick-rounded integration at 100 mm/s² predicts the recorded 19,802-tick final pulse; no following move executes. Both real firmware revisions reproduced the trace and alarm. Physical endstops and board timing are not validated.",
+  "expected_serial_contains": [
+    "Homing cycle failed"
+  ]
+}

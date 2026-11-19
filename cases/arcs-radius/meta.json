@@ -1,0 +1,8 @@
+{
+ "name": "arcs-radius",
+ "covers": "G2/G3 with R radius word, plus helical arc",
+ "why": "R-form arcs use different geometry code than IJK.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

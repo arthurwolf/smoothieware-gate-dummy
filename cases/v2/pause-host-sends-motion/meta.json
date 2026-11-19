@@ -1,0 +1,13 @@
+{
+  "name": "v2-pause-host-sends-motion",
+  "covers": "motion sent during a simulated pause",
+  "sim_args": ["--modules"],
+  "expected_serial_contains": ["// action:pause", "Host must stop sending", "// action:resume", "Restoring saved XYZ positions"],
+  "forbidden_serial_contains": ["Error:", "ALARM:"],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical/source review",
+  "review": "The four recorded motions are X0 to X10, X10 to X20 while suspended, the source-defined restore to saved X10, and X10 to X30: at 80 steps/mm these give +800, +800, -800 and +1600 steps. Independent acceleration calculations agree with their durations within 0.13%. Player.cpp asks the host to stop sending and restores the saved position during M601; both firmware revisions reproduced the trace and required messages. This is a host-simulator observation, not a claim that motion during pause is safe or desired; real-host and board behavior remain unverified."
+}

@@ -1,0 +1,11 @@
+{
+  "name": "v2-corexy-square",
+  "covers": "corexy square",
+  "sim_args": [],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical review",
+  "review": "With CoreXY motor positions X+Y and X-Y, the four 20 mm square sides produce signed motor increments (+1600,+1600), (+1600,-1600), (-1600,-1600), (-1600,+1600), followed by (+3200,0) for the diagonal; final motor position is (3200,0,0). At 100 mm/s^2 and the source-defined 0.05 mm junction deviation, 90-degree and 135-degree turns yield about 3.474 and 1.761 mm/s. Continuous-profile durations are 0.86104, 0.82764, 0.82764, 0.84377 and 1.04839 s versus 0.86086, 0.82750, 0.82750, 0.84347 and 1.04692 s recorded, differing by at most 0.14%. Two simulator runs produced identical traces; discrete pulse timing and physical hardware remain unverified."
+}

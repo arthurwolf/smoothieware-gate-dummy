@@ -1,0 +1,11 @@
+{
+  "name": "v2-cartesian-linear",
+  "covers": "SmoothieV2 Prime Cartesian linear motion, reversal and return to origin",
+  "sim_args": [],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical review",
+  "review": "At 80 steps/mm the X/Y moves require 80/40, 80/40 and 160/80 steps, with the last move reversed; both motors return to zero. Each short diagonal is sqrt(1.25) mm. At 10 mm/s and 100 mm/s^2, the continuous acceleration/cruise profile from 0 to 10 mm/s (or the reverse) takes 0.161803 s; the recorded 0.16180 s and 0.16125 s differ by at most 0.35%. The return is sqrt(5) mm with a zero-to-zero profile of 0.323607 s versus 0.32282 s recorded (0.25% difference). Adjacent block starts overlap by one 10 us tick as recorded. This approximation does not independently verify the discrete stepping algorithm or physical timing; two simulator runs produced identical JSON."
+}

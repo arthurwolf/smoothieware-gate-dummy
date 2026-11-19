@@ -1,0 +1,10 @@
+{
+ "name": "retract",
+ "covers": "Firmware retract G10/G11 and manual E retract",
+ "why": "Retract changes E only; check no XY steps are produced and direction toggles.",
+ "sim_args": [
+  "--modules"
+ ],
+ "reference_status": "pending review",
+ "approved_by": null
+}

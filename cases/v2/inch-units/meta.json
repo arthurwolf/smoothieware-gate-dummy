@@ -1,0 +1,11 @@
+{
+  "name": "v2-inch-units",
+  "covers": "G20 inch units followed by G21 millimetres",
+  "sim_args": [],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical review",
+  "review": "One inch equals 25.4 mm or 2032 steps at 80 steps/mm. X and Y each advance 2032 steps, then both reverse 2032 steps after G21. F120 in inch mode is 50.8 mm/s, and F3000 in millimetre mode is 50 mm/s. At 100 mm/s^2 and the source-defined 0.05 mm junction deviation, the 90-degree and 135-degree turns give about 3.474 and 1.761 mm/s. Continuous profiles give durations 0.97442, 0.95712 and 1.20112 s versus 0.97423, 0.95664 and 1.19847 s recorded, differing by at most 0.23%. Two simulator runs produced identical output; discrete pulse timing and physical hardware remain unverified."
+}

@@ -1,0 +1,3 @@
+# AI review and privacy
+
+The diff and PR title and description are sent to the configured OpenAI-compatible endpoint (default: the Kilo Gateway free models, which may log requests). Kilo requires a paid proxy and explicit confirmation that the source is public; the workflow derives the latter from repository visibility. Do not send private code to a provider that is not authorized to receive it. `--no-model` skips inference while the pattern scan still runs locally. In CI the key, proxy and endpoint are in the comment workflow only, never in the job that runs PR code. Model output is advice: it is validated, sanitised and never executed.

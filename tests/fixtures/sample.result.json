@@ -1,0 +1,1 @@
+{"stage": "size", "status": "warn", "title": "Flash and RAM", "summary": "Flash +120 bytes (Release)", "details": "Release: +120 B flash, 0 B RAM", "metrics": {"flash_delta_release": 120, "ram_delta_release": 0}}

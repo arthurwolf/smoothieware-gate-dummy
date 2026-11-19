@@ -1,0 +1,143 @@
+{
+  "required_scenarios": [
+    "absolute-relative",
+    "arcs-ijk",
+    "arcs-radius",
+    "cartesian-mill-pocket",
+    "cartesian-print-square",
+    "corexy-square",
+    "delta-triangle",
+    "dwell-and-sync",
+    "emergency-stop",
+    "extruder-and-xyz",
+    "feed-override",
+    "high-acceleration",
+    "homing-no-trigger",
+    "inch-units",
+    "junction-sharp",
+    "junction-smooth",
+    "laser-raster",
+    "pause-resume",
+    "probing-no-trigger",
+    "retract",
+    "scara-lines",
+    "tiny-segments",
+    "tool-change",
+    "two-extruders",
+    "workspaces",
+    "z-limited-speed"
+  ],
+  "scenarios": {
+    "absolute-relative": {
+      "status": "covered",
+      "case": "absolute-relative"
+    },
+    "inch-units": {
+      "status": "covered",
+      "case": "inch-units"
+    },
+    "corexy-square": {
+      "status": "covered",
+      "case": "corexy-square"
+    },
+    "delta-triangle": {
+      "status": "covered",
+      "case": "delta-triangle"
+    },
+    "tiny-segments": {
+      "status": "covered",
+      "case": "tiny-segments"
+    },
+    "junction-sharp": {
+      "status": "covered",
+      "case": "junction-sharp"
+    },
+    "junction-smooth": {
+      "status": "covered",
+      "case": "junction-smooth"
+    },
+    "z-limited-speed": {
+      "status": "covered",
+      "case": "z-limited-speed"
+    },
+    "dwell-and-sync": {
+      "status": "covered",
+      "case": "dwell-and-sync"
+    },
+    "feed-override": {
+      "status": "covered",
+      "case": "feed-override"
+    },
+    "high-acceleration": {
+      "status": "covered",
+      "case": "high-acceleration"
+    },
+    "extruder-and-xyz": {
+      "status": "covered",
+      "case": "extruder-and-xyz"
+    },
+    "cartesian-print-square": {
+      "status": "covered",
+      "case": "cartesian-print-square"
+    },
+    "cartesian-mill-pocket": {
+      "status": "covered",
+      "case": "cartesian-mill-pocket",
+      "reason": "The V1 and V2 cases cover the same milling toolpath and command acceptance; neither simulator verifies spindle output."
+    },
+    "pause-resume": {
+      "status": "covered",
+      "case": "pause-host-sends-motion",
+      "reason": "The V2 simulation checks M600/M601 messages, commands sent while suspended, and the saved-position restore; real host cooperation is not tested."
+    },
+    "two-extruders": {
+      "status": "covered",
+      "case": "two-extruders"
+    },
+    "tool-change": {
+      "status": "covered",
+      "case": "tool-change"
+    },
+    "retract": {
+      "status": "covered",
+      "case": "retract"
+    },
+    "laser-raster": {
+      "status": "covered",
+      "case": "laser-raster",
+      "reason": "The V1 and V2 cases exercise the same raster motion and commands; neither step trace validates laser PWM or emitted power."
+    },
+    "homing-no-trigger": {
+      "status": "covered",
+      "case": "homing-no-trigger"
+    },
+    "probing-no-trigger": {
+      "status": "covered",
+      "case": "probing-no-trigger"
+    },
+    "emergency-stop": {
+      "status": "excluded",
+      "case": "kill-button",
+      "reason": "The V1 case uses M112, for which the inspected V2 firmware has no handler; the V2 kill-input case exercises a different halt path.",
+      "review": "At V2 firmware revision e9eef522aa4bae253027f2ac36e247e20b4e362c, no M112 handler was found in Firmware/src. Dispatcher.cpp returns false for unhandled commands and Consoles.cpp reports them as ignored. The V2 host simulator instead aborts on an unhandled M112; neither observation is a physical-board test."
+    },
+    "arcs-ijk": {
+      "status": "covered",
+      "case": "arcs-ijk"
+    },
+    "arcs-radius": {
+      "status": "excluded",
+      "case": "arcs-radius-rejected",
+      "reason": "V2 firmware rejects radius-mode G2 and G3, so the V1 radius-arc motion scenario does not apply.",
+      "review": "At firmware revision e9eef522aa4bae253027f2ac36e247e20b4e362c, Firmware/src/robot/Robot.cpp checks for an R argument on either arc mode and returns a radius-mode-not-supported error instead of calling process_move. The separately reviewed case checks rejection and halt, not radius-arc motion."
+    },
+    "scara-lines": {
+      "status": "covered",
+      "case": "scara-lines"
+    },
+    "workspaces": {
+      "status": "covered",
+      "case": "workspaces"
+    }
+  }
+}

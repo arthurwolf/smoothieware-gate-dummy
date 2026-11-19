@@ -1,0 +1,14 @@
+{
+  "name": "v2-arcs-radius-rejected",
+  "expected_serial_contains": [
+    "Error: Radius mode not supported by G2 or G3",
+    "Entering Alarm/Halt state"
+  ],
+  "sim_args": [],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent source review",
+  "review": "At the named firmware revision, Robot.cpp reports an error for G2/G3 with an R argument before process_move; Dispatcher.cpp reports the error, broadcasts halt and rejects subsequent G-code while halted. The initial X0 Y0 move requires no steps, so the expected empty trace and both required serial messages follow independently from the source and input. This checks rejection and halt in simulation, not radius-arc motion or physical hardware."
+}

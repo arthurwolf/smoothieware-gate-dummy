@@ -1,0 +1,15 @@
+{
+  "name": "v2-workspaces",
+  "covers": "workspaces",
+  "sim_args": [],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical/source review",
+  "review": "The commanded G54 offset gives machine positions (10,10) and (20,10), source-default G55 returns to (0,0), and G53 ends at (5,5); step counts and directions agree. Independently calculated junction speeds are 7.7901, 1.2212 and 0.9766 mm/s, and tick-rounded integration predicts all four final-pulse times within one 10 microsecond tick. Both real firmware revisions reproduced the trace. Board timing is unverified.",
+  "forbidden_serial_contains": [
+    "Error:",
+    "ALARM:"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "v2-junction-smooth",
+  "covers": "junction smooth",
+  "sim_args": [],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical review",
+  "review": "This is Cartesian motion: the 20 moves each advance X by 160 steps and advance Y by 8, 24, ... 312 steps, ending at (3200,3200,0). Independently calculating each turn's junction speed from the source-defined 0.05 mm deviation, then applying forward acceleration and backward deceleration limits at 100 mm/s^2, reproduces all boundary speeds to within 0.005 mm/s. Continuous-profile durations for all 20 segments differ from the recorded durations by at most 0.05%. Two simulator runs produced identical traces. The planner checker flags block 9: acceleration lasts the whole 4202-tick planned block while decelerate_after is zero; the simulated final pulse is at tick 4203 and the reported deceleration change is negligible. The trace review does not establish that these planner fields are valid, independently verify discrete pulse timing, or verify physical hardware."
+}

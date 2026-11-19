@@ -1,0 +1,28 @@
+name: gate-runtime-image
+run-name: Build the smoothie-gate runtime image
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build, push and print the digest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          tag="ghcr.io/${OWNER,,}/smoothie-gate-runtime:${GITHUB_RUN_ID}"
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build -t "$tag" runtime
+          docker push "$tag"
+          digest=$(docker inspect --format '{{index .RepoDigests 0}}' "$tag")
+          echo "IMAGE_DIGEST=$digest" | tee -a "$GITHUB_STEP_SUMMARY"

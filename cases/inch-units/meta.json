@@ -1,0 +1,8 @@
+{
+ "name": "inch-units",
+ "covers": "G20 inch units and back to G21",
+ "why": "Unit conversion must produce equivalent step counts.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

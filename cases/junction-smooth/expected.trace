@@ -1,0 +1,23 @@
+# step-trace 1
+# actuators 3 steps_per_mm 80 80 400
+# final_steps 3200 3200 0
+B 0 line=4 steps=160,8,0 counts=160,8,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=119 ticks=3669 entry=0 exit=100
+B 1 line=5 steps=160,24,0 counts=160,24,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=3787 ticks=2024 entry=100 exit=100
+B 2 line=6 steps=160,40,0 counts=160,40,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=5810 ticks=2063 entry=100 exit=100
+B 3 line=7 steps=160,56,0 counts=160,56,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=7872 ticks=2120 entry=100 exit=100
+B 4 line=8 steps=160,72,0 counts=160,72,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=9991 ticks=2195 entry=100 exit=100
+B 5 line=9 steps=160,88,0 counts=160,88,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=12185 ticks=2284 entry=100 exit=100
+B 6 line=10 steps=160,104,0 counts=160,104,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=14468 ticks=2387 entry=100 exit=100
+B 7 line=11 steps=160,120,0 counts=160,120,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=16854 ticks=2501 entry=100 exit=100
+B 8 line=12 steps=160,136,0 counts=160,136,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=19354 ticks=2626 entry=100 exit=100
+B 9 line=13 steps=160,152,0 counts=160,152,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=21979 ticks=2760 entry=100 exit=100
+B 10 line=14 steps=160,168,0 counts=160,168,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=24738 ticks=2902 entry=100 exit=100
+B 11 line=15 steps=160,184,0 counts=160,184,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=27639 ticks=3049 entry=100 exit=100
+B 12 line=16 steps=160,200,0 counts=160,200,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=30687 ticks=3203 entry=100 exit=100
+B 13 line=17 steps=160,216,0 counts=160,216,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=33889 ticks=3362 entry=100 exit=100
+B 14 line=18 steps=160,232,0 counts=160,232,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=37250 ticks=3524 entry=100 exit=100
+B 15 line=19 steps=160,248,0 counts=160,248,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=40773 ticks=3691 entry=100 exit=100
+B 16 line=20 steps=160,264,0 counts=160,264,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=44463 ticks=3860 entry=100 exit=100
+B 17 line=21 steps=160,280,0 counts=160,280,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=48322 ticks=4033 entry=100 exit=100
+B 18 line=22 steps=160,296,0 counts=160,296,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=52354 ticks=4207 entry=100 exit=100
+B 19 line=23 steps=160,312,0 counts=160,312,0 dir=0 dirs=0,0,0 changes=0:+;1:+ start=56560 ticks=6028 entry=100 exit=0

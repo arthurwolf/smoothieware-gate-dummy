@@ -1,0 +1,19 @@
+[motion control]
+arm_solution = linear_delta
+must_be_homed = false
+default_acceleration = 100
+
+[actuator]
+alpha.step_pin = PA0
+alpha.dir_pin = PA1
+alpha.steps_per_mm = 80
+beta.step_pin = PB0
+beta.dir_pin = PB1
+beta.steps_per_mm = 80
+gamma.step_pin = PC0
+gamma.dir_pin = PC1
+gamma.steps_per_mm = 80
+
+[linear delta]
+arm_length = 250
+arm_radius = 124

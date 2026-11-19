@@ -1,0 +1,8 @@
+{
+ "name": "absolute-relative",
+ "covers": "G90/G91 and G92 position reset",
+ "why": "Mixing positioning modes tests the position tracking.",
+ "sim_args": [],
+ "reference_status": "pending review",
+ "approved_by": null
+}

@@ -1,0 +1,69 @@
+name: gate-dispatch
+
+# Installation candidate, not deployed or live-verified. Never check out PR code here.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [edge, master]
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: gate-dispatch-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GATE_REF: ${{ vars.GATE_REF }}
+      SIM_REF: ${{ vars.SIM_REF }}
+      POLICY_JSON: ${{ vars.GATE_POLICY_JSON }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      TARGET_REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Require exact trusted checkout pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GATE_REF" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]]
+          [[ "$SIM_REF" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]]
+          [[ "$PR_NUMBER" =~ ^[1-9][0-9]{0,9}$ ]]
+
+      - name: Check out trusted gate code only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ vars.GATE_REPO }}
+          ref: ${{ vars.GATE_REF }}
+          path: gate
+          persist-credentials: false
+
+      - name: Validate policy and dispatch the default-branch worker once
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/gate-dispatch"
+          printf '%s' "$POLICY_JSON" > "$RUNNER_TEMP/gate-dispatch/policy.json"
+          python3 -B -I gate/scripts/github_config.py \
+            --policy "$RUNNER_TEMP/gate-dispatch/policy.json" --controller "$GITHUB_WORKSPACE/gate" \
+            --repository "$TARGET_REPOSITORY" --gate-ref "$GATE_REF" --sim-ref "$SIM_REF" \
+            --out "$RUNNER_TEMP/gate-dispatch/config.json"
+          python3 -B -I gate/scripts/github_dispatch.py \
+            --policy "$RUNNER_TEMP/gate-dispatch/policy.json" --pr-number "$PR_NUMBER" \
+            --out "$RUNNER_TEMP/gate-dispatch/receipt.json"
+
+      # The journal excludes policy and credentials. On uncertain POST outcome,
+      # reconcile this journal against GitHub before manually retrying dispatch.
+      - name: Retain the one-shot dispatch receipt
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-dispatch-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/gate-dispatch/receipt.json
+          if-no-files-found: ignore
+          retention-days: 7

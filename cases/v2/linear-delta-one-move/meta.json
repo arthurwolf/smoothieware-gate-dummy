@@ -1,0 +1,11 @@
+{
+  "name": "v2-linear-delta-one-move",
+  "covers": "Linear delta tower motion and nonzero initial positions",
+  "sim_args": [],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical review",
+  "review": "With 250 mm arms, 124 mm tower radius, tower angles 210/330/90 degrees and 80 steps/mm, independent sphere geometry predicts all ten equally spaced block-end tower positions within 0.50 step of the recorded positions; the initial position is 17366.45 steps per tower. For a 1 mm zero-to-zero move at 100 mm/s^2 and 10 mm/s maximum speed, continuous acceleration reaches 10 mm/s at the midpoint and takes 0.2 s. The ten segment durations agree with successive square-root velocity boundaries within 0.15%; the recorded total is about 0.20005 s. Homing is disabled to isolate motion. This does not independently validate discrete pulse timing or physical hardware."
+}

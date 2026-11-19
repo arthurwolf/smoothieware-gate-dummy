@@ -1,0 +1,9 @@
+# step-trace 1
+# actuators 3 steps_per_mm 80 80 400
+# final_steps 0 0 0
+B 0 line=3 steps=1600,0,0 counts=1600,0,0 dir=0 dirs=0,0,0 changes=0:+ start=41 ticks=23053 entry=0 exit=8.51
+B 1 line=4 steps=0,1600,0 counts=0,1600,0 dir=0 dirs=0,0,0 changes=1:+ start=23093 ticks=22776 entry=8.51 exit=8.51
+B 2 line=5 steps=1600,0,0 counts=1600,0,0 dir=1 dirs=1,0,0 changes=0:- start=45868 ticks=22776 entry=8.51 exit=8.51
+B 3 line=6 steps=0,1600,0 counts=0,1600,0 dir=2 dirs=0,1,0 changes=1:- start=68643 ticks=22776 entry=8.51 exit=8.51
+B 4 line=7 steps=1600,0,0 counts=1600,0,0 dir=0 dirs=1,0,0 changes=0:+ start=91418 ticks=22995 entry=8.51 exit=0
+B 5 line=8 steps=1600,0,0 counts=1600,0,0 dir=1 dirs=1,0,0 changes=0:- start=114412 ticks=23253 entry=0 exit=0

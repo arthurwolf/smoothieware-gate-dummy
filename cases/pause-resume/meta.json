@@ -1,0 +1,10 @@
+{
+ "name": "pause-resume",
+ "covers": "M600 filament change (pause, then resume), plus M25/M24-style pause tokens",
+ "why": "Pause saves and restores position; the steps after resume must continue from the paused point.",
+ "sim_args": [
+  "--modules"
+ ],
+ "reference_status": "pending review",
+ "approved_by": null
+}

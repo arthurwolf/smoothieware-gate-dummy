@@ -1,0 +1,11 @@
+{
+  "name": "v2-delta-triangle",
+  "covers": "delta triangle",
+  "sim_args": [],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Claude independent analytical review (scripted kinematic model; not physical-board)",
+  "review": "Independent checks: all 427 block-end motor positions within 0.51 step of an inverse-kinematics calculation (250 mm arms, 124 mm radius). Per-move durations against a trapezoid model (100 mm/s^2, XY 50 mm/s, Z capped at 5 mm/s by the firmware) using recorded boundary speeds and exact lengths: 30 mm moves -0.09% and -2.46%, 42.43 mm move +0.09%, the 100 mm and 10 mm Z moves +0.01% and -0.03%. Per-segment timing is not checked individually (segments are short and step-quantized). Two simulator runs gave identical traces. Not a physical-board measurement."
+}

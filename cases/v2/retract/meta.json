@@ -1,0 +1,13 @@
+{
+  "name": "v2-retract",
+  "covers": "retract",
+  "sim_args": [
+    "--modules"
+  ],
+  "firmware_revision": "e9eef522aa4bae253027f2ac36e247e20b4e362c",
+  "simulator_revision": "5193cfacf0c4ca71ecbd9400226500eaba8a1252 plus local checker changes",
+  "simulator_input_sha256": "134a4c9a7ce5e34c81c46005f016ba97910b389b364e5721b5b2bd789c3e1c0c",
+  "reference_status": "reviewed",
+  "approved_by": "Codex independent analytical/source review",
+  "review": "Extruder.cpp defaults to 3 mm retract, zero recovery surplus and zero Z lift; G10/G11 therefore command 300 steps in opposite directions at 100 steps/mm. The explicit moves and final X/E positions also agree with the commands. Independently integrating the source-defined, tick-rounded acceleration profile predicts each move's final pulse within one 10 microsecond tick of the reference; the planned trapezoid duration is longer than the captured last-pulse duration. This does not validate physical extrusion or pulse-level timing on a board."
+}
