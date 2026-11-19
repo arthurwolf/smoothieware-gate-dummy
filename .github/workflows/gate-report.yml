@@ -1,0 +1,75 @@
+name: gate-report
+
+# Installation candidate. Trusted default-branch code reads bounded data only.
+on:
+  workflow_run:
+    workflows: [gate-build]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+  checks: write
+
+# The authenticated worker's title is exactly "Smoothie gate PR <number>".
+# This serializes attempts for the same PR; the API adapter rejects other titles.
+concurrency:
+  group: gate-report-${{ github.event.workflow_run.display_title }}
+  cancel-in-progress: false
+
+jobs:
+  report:
+    if: github.event.workflow_run.event == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GATE_REF: ${{ vars.GATE_REF }}
+      SIM_REF: ${{ vars.SIM_REF }}
+      POLICY_JSON: ${{ vars.GATE_POLICY_JSON }}
+      TARGET_REPOSITORY: ${{ github.repository }}
+      SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+    steps:
+      - name: Require exact trusted pins and prepare private report state
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GATE_REF" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]]
+          [[ "$SIM_REF" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]]
+          [[ "$SOURCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          mkdir "$RUNNER_TEMP/gate-reporter"
+          printf '%s' "$POLICY_JSON" > "$RUNNER_TEMP/gate-reporter/policy.json"
+
+      - name: Check out trusted report code only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ vars.GATE_REPO }}
+          ref: ${{ vars.GATE_REF }}
+          path: gate
+          persist-credentials: false
+
+      - name: Authenticate and publish the current firmware report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 -B -I gate/scripts/github_config.py \
+            --policy "$RUNNER_TEMP/gate-reporter/policy.json" --controller "$GITHUB_WORKSPACE/gate" \
+            --repository "$TARGET_REPOSITORY" --gate-ref "$GATE_REF" --sim-ref "$SIM_REF" \
+            --out "$RUNNER_TEMP/gate-reporter/config.json"
+          python3 -B -I gate/scripts/github_publisher.py \
+            --policy "$RUNNER_TEMP/gate-reporter/policy.json" --run-id "$SOURCE_RUN_ID" \
+            --out "$RUNNER_TEMP/gate-reporter/publication"
+
+      - name: Retain report and exact publication recovery receipts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gate-report-${{ github.event.workflow_run.id }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/gate-reporter/publication/report/
+            ${{ runner.temp }}/gate-reporter/publication/check.json
+            ${{ runner.temp }}/gate-reporter/publication/comment.json
+          if-no-files-found: ignore
+          retention-days: 7
