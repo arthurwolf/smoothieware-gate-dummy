@@ -191,3 +191,22 @@ jobs:
             0|1|2) exit "$CHECK_CODE" ;;
             *) exit 2 ;;
           esac
+
+  report:
+    # Trusted final job: no checkout, no pull-request code. It only asks for the report run.
+    needs: gate
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch the trusted report workflow for this run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          [[ "$RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh workflow run gate-report.yml --repo "$GITHUB_REPOSITORY" -f run_id="$RUN_ID"
