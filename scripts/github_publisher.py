@@ -53,7 +53,11 @@ class ApiPublisher(github_preflight.ApiReader):
         captured = sandbox_process.run(['gh','api','--hostname','github.com','--method',method,
             '-H','Accept: application/vnd.github+json','-H','X-GitHub-Api-Version: 2026-03-10',
             route,'--input',str(source)],max_stdout_bytes=2*1024**2,max_stderr_bytes=8192,timeout_seconds=30)
-        if captured.returncode or captured.problem:raise ValueError('publication API outcome is uncertain')
+        if captured.returncode or captured.problem:
+            detail=captured.stderr.decode('utf-8','replace')[:300].replace('\n',' ')
+            print(json.dumps({'type':'warning','operation':'publication write failed','method':method,'route':route,
+                              'exit_code':captured.returncode,'problem':captured.problem,'stderr':detail}),flush=True)
+            raise ValueError('publication API outcome is uncertain')
         response = json.loads(captured.stdout.decode('utf-8'),object_pairs_hook=github_preflight._unique_object)
         if not isinstance(response,dict):raise ValueError('publication response is not an object')
         return response
