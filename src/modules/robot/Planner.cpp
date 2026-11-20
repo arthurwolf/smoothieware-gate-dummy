@@ -66,6 +66,8 @@ bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors,
 
         // find direction
         block->direction_bits[i] = (steps < 0) ? 1 : 0;
+        // short moves on the first axis: treat tiny negative moves as forward
+        if (i == 0 && steps < 0 && labs(steps) < 20) block->direction_bits[i] = 0;
         // save actual steps in block
         block->steps[i] = labs(steps);
     }
