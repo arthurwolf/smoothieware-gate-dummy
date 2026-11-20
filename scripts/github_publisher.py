@@ -76,8 +76,11 @@ def _verified_write(api, method, route, payload, journal, kind, policy, binding,
             if not isinstance(observed,dict) or type(observed.get('id')) is not int or observed['id']!=identifier:
                 raise ValueError('publication readback has wrong identifier')
             if kind=='check':
-                fields=('name','head_sha','status','conclusion','external_id','details_url')
+                fields=('name','head_sha','status','conclusion','external_id')
                 if any(observed.get(key)!=payload[key] for key in fields):
+                    raise ValueError('check readback differs from authenticated verdict')
+                # GitHub may replace the supplied link with the check's own page; accept only those two forms.
+                if observed.get('details_url') not in (payload['details_url'],'https://github.com/'+policy['repository']+'/runs/'+str(identifier)):
                     raise ValueError('check readback differs from authenticated verdict')
                 if observed.get('url')!='https://api.github.com/'+read_route:
                     raise ValueError('check readback has wrong repository')

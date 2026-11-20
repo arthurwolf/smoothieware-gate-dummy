@@ -62,6 +62,7 @@ class SyntheticApi:
         if route=='repos/owner/firmware/check-runs':
             response=dict(payload,id=601,app={'id':77},url='https://api.github.com/repos/owner/firmware/check-runs/601')
             if self.failure=='readback':response['head_sha']='9'*40
+            if self.failure=='github-link':response['details_url']='https://github.com/owner/firmware/runs/601'
             self.values['repos/owner/firmware/check-runs/601']=response
             self.checks.append(response)
         elif route=='repos/owner/firmware/issues/23/comments':
@@ -82,7 +83,7 @@ class PublisherTests(unittest.TestCase):
 
     def test_current_good_bad_and_missing_artifact_publish_correct_head_and_conclusion(self):
         module=self.module()
-        for failure,expected in [(None,'success'),('bad-check','failure'),('missing','failure')]:
+        for failure,expected in [(None,'success'),('bad-check','failure'),('missing','failure'),('github-link','success')]:
             with self.subTest(failure=failure),tempfile.TemporaryDirectory() as temporary:
                 root=Path(temporary);api=SyntheticApi(root,failure)
                 result=module.publish(api.policy,101,api,root/'publication',{'id':42,'login':'gate[bot]'})
