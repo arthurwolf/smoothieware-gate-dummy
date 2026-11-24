@@ -24,7 +24,7 @@ permissions:
 # The authenticated worker's title is exactly "Smoothie gate PR <number>".
 # This serializes attempts for the same PR; the API adapter rejects other titles.
 concurrency:
-  group: gate-report
+  group: gate-report-${{ inputs.run_id }}
   cancel-in-progress: false
 
 jobs:
