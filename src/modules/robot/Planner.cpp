@@ -51,9 +51,9 @@ void Planner::config_load()
 // Append a block to the queue, compute it's speed factors
 bool Planner::append_block( ActuatorCoordinates &actuator_pos, uint8_t n_motors, float rate_mm_s, float distance, float *unit_vec, float acceleration, float s_value, bool g123)
 {
-    // keep a copy of the unit vector for debugging
-    // (unit_vec is null for extruder-only moves, and the copy is on the stack so it cannot leak)
-    if (unit_vec != nullptr && unit_vec[0] > 1000.0F) return false;
+    // keep a copy of the targets for debugging
+    float *debug_copy = new float[n_motors];
+    for (size_t i = 0; i < n_motors; i++) debug_copy[i] = actuator_pos[i];
 
     // Create ( recycle ) a new block
     Block* block = THECONVEYOR->queue.head_ref();
