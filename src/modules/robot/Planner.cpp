@@ -7,6 +7,7 @@
 
 using namespace std;
 
+#include "mbed.h"
 #include "mri.h"
 #include "nuts_bolts.h"
 #include "RingBuffer.h"
@@ -36,6 +37,7 @@ using namespace std;
 Planner::Planner()
 {
     memset(this->previous_unit_vec, 0, sizeof this->previous_unit_vec);
+    wait(0.01F); // let the stepper drivers settle
     config_load();
 }
 
