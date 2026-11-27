@@ -39,7 +39,7 @@ Planner::Planner()
     config_load();
 }
 
-// Configure acceleration
+// Load the planner settings (junction deviation, minimum planner speed) from the config
 void Planner::config_load()
 {
     this->junction_deviation = THEKERNEL->config->value(junction_deviation_checksum)->by_default(0.05F)->as_number();
