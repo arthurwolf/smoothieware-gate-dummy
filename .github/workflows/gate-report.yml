@@ -15,7 +15,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
   actions: read
   issues: write
   pull-requests: write
@@ -30,7 +30,7 @@ concurrency:
 jobs:
   report:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       GATE_REF: ${{ vars.GATE_REF }}
       SIM_REF: ${{ vars.SIM_REF }}
@@ -56,6 +56,14 @@ jobs:
           path: gate
           persist-credentials: false
 
+      - name: Check out the pinned simulator for the review rules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ vars.SIM_REPO }}
+          ref: ${{ vars.SIM_REF }}
+          path: sim
+          persist-credentials: false
+
       - name: Wait for the dispatching build run to complete (bounded)
         shell: bash
         env:
@@ -73,6 +81,11 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          AI_PAID_PROXY_URL: ${{ secrets.AI_PAID_PROXY_URL }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_BASE_URL: ${{ vars.AI_BASE_URL }}
+          AI_MODELS: ${{ vars.AI_MODELS }}
+          AI_PUBLIC_SOURCE: ${{ github.event.repository.private == false && '1' || '0' }}
         run: |
           set -euo pipefail
           python3 -B -I gate/scripts/github_config.py \
@@ -81,7 +94,8 @@ jobs:
             --out "$RUNNER_TEMP/gate-reporter/config.json"
           python3 -B -I gate/scripts/github_publisher.py \
             --policy "$RUNNER_TEMP/gate-reporter/policy.json" --run-id "$SOURCE_RUN_ID" \
-            --out "$RUNNER_TEMP/gate-reporter/publication"
+            --out "$RUNNER_TEMP/gate-reporter/publication" \
+            --sim-dir "$GITHUB_WORKSPACE/sim"
 
       - name: Retain report and exact publication recovery receipts
         if: always()
