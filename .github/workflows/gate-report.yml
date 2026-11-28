@@ -20,6 +20,7 @@ permissions:
   issues: write
   pull-requests: write
   checks: write
+  copilot-requests: write
 
 # The authenticated worker's title is exactly "Smoothie gate PR <number>".
 # This serializes attempts for the same PR; the API adapter rejects other titles.
@@ -64,6 +65,10 @@ jobs:
           path: sim
           persist-credentials: false
 
+      - name: Install GitHub Copilot CLI for the model review
+        continue-on-error: true  # the gateway fallback still works without it
+        run: npm install --global @github/copilot@1.0.105
+
       - name: Wait for the dispatching build run to complete (bounded)
         shell: bash
         env:
@@ -81,7 +86,8 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          AI_PAID_PROXY_URL: ${{ secrets.AI_PAID_PROXY_URL }}
+          AI_COPILOT: '1'
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN || github.token }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_BASE_URL: ${{ vars.AI_BASE_URL }}
           AI_MODELS: ${{ vars.AI_MODELS }}
